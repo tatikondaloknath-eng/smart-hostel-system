@@ -26,8 +26,6 @@
         .room-card i { font-size: 24px; color: #555; margin-bottom: 10px; }
         .room-card h4 { margin: 0 0 5px 0; font-size: 18px; }
         .room-available { border-bottom-color: #28a745; }
-        .room-available:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
-        .room-available .status { color: #28a745; font-size: 12px; font-weight: bold;}
         .floor-plan-wrapper { width: 100%; overflow-x: auto; padding: 10px 0; text-align: center; }
         .floor-plan { width: 600px; height: 400px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; display: inline-block; text-align: left; }
         .window { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 150px; height: 6px; background: #87ceeb; border: 1px solid #4a4a4a; }
@@ -36,26 +34,12 @@
         .bed { position: absolute; width: 80px; height: 130px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
         .pillow { position: absolute; top: 10px; width: 50px; height: 25px; background: white; border: 1px solid #ccc; border-radius: 4px; }
         .bed-available { cursor: pointer; border-color: #28a745;}
-        .bed-available:hover { box-shadow: 0 0 10px rgba(40,167,69,0.5); }
-        .bed-selected { border-color: #28a745; background: #d4edda; border-width: 3px; }
-        .bed-selected i { color: #28a745; font-size: 24px; z-index: 2; margin-top: 20px; }
         .bed-waiting { cursor: pointer; border-color: #fd7e14; background: #fff3cd; }
-        .bed-waiting i { color: #fd7e14; font-size: 24px; z-index: 2; margin-top: 20px; }
-        .bed-waiting:hover { box-shadow: 0 0 10px rgba(253,126,20,0.5); }
         .bed-locked { cursor: not-allowed; opacity: 0.8; border-color: #dc3545; background: #f8d7da;}
-        .bed-locked i { color: #dc3545; font-size: 24px; z-index: 2; margin-top: 20px; }
         .pos-1 { top: 20px; left: 20px; }  .pos-2 { top: 20px; right: 20px; } .pos-3 { bottom: 20px; left: 20px; } .pos-4 { bottom: 20px; right: 20px; } 
-        .payment-box { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 20px; }
-        .receipt-card { background: #d4edda; color: #155724; padding: 30px; border-radius: 10px; text-align: center; border: 2px solid #c3e6cb; }
-        .receipt-card h3 { margin: 0 0 10px 0; font-size: 24px; }
-        .receipt-card p { font-size: 16px; margin: 5px 0; font-weight: bold; }
-        .payment-icons { font-size: 28px; color: #4a4a4a; display: flex; gap: 15px; justify-content: center; margin-bottom: 15px; }
-        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #a31d33; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 15px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left; min-width: 800px; }
         th, td { border: 1px solid #ddd; padding: 10px; } th { background-color: #a31d33; color: white; }
-        .status-booked { color: #28a745; font-weight: bold; } .status-waiting { color: #fd7e14; font-weight: bold; } .status-pending { color: #dc3545; font-weight: bold; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 10px; box-sizing: border-box;}
         .modal-content { background-color: white; padding: 30px; border-radius: 10px; width: 100%; max-width: 400px; position: relative; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;}
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #777; transition: 0.2s; }
@@ -124,16 +108,15 @@
             <p>Room: <strong id="pay-room"></strong> | Bed: <strong id="pay-bed"></strong></p>
             <p style="font-size: 18px;">Total Amount: <strong id="pay-amount" style="color: #28a745;">₹60,000</strong></p>
         </div>
-        <div class="input-group"><label>Mobile Number</label><input type="text" id="pay-mobile" placeholder="10-digit number" maxlength="10"></div>
         <button class="btn" style="width: 100%; background-color: #28a745;" onclick="validatePayment()"><i class="fas fa-lock"></i> Pay Securely</button>
     </div>
 
     <div id="view-receipt" class="page-container" style="max-width: 500px; text-align: center;">
         <div class="receipt-card">
-            <i class="fas fa-check-circle" style="font-size: 50px; margin-bottom: 15px;"></i><h3 id="receipt-title">Payment Successful!</h3>
+            <i class="fas fa-check-circle" style="font-size: 50px; margin-bottom: 15px; color:#28a745;"></i><h3 id="receipt-title">Payment Successful!</h3>
             <p>Student: <span id="receipt-name"></span></p><p>Room: <span id="receipt-room"></span> | Bed: <span id="receipt-bed"></span></p>
         </div>
-        <button class="btn" onclick="logout()">Back to Menu</button>
+        <button class="btn" onclick="logout()">Done</button>
     </div>
 
     <div id="view-admin" class="page-container" style="max-width: 1000px;">
@@ -165,16 +148,43 @@
         </div>
     </div>
 
-    <div id="otp-modal" class="modal"><div class="modal-content" style="text-align: center;"><h3>Verify OTP</h3><input type="text" id="otp-input" placeholder="XXXX" maxlength="4" style="text-align:center; font-size: 24px;"><button class="btn" onclick="verifyOTP()">Confirm</button></div></div>
-    <div id="admin-edit-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeAdminModal()">&times;</span><h3>Edit Student</h3><div id="edit-student-name"></div><input type="text" id="edit-pass-input" placeholder="New Password"><input type="number" id="edit-room-input" placeholder="Room"><select id="edit-bed-input"><option value="1">Bed 1</option><option value="2">Bed 2</option><option value="3">Bed 3</option><option value="4">Bed 4</option></select><button class="btn" onclick="saveAdminChanges()">Save</button><button class="btn btn-outline" style="color:red; border-color:red;" onclick="cancelBooking()">Cancel Booking</button></div></div>
+    <div id="admin-edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAdminModal()">&times;</span>
+            <h3 style="color: #a31d33; margin-top: 0;"><i class="fas fa-user-edit"></i> Edit Student Data</h3>
+            <p>Student: <strong id="edit-student-name"></strong></p>
+            <div class="input-group">
+                <label>Update Password</label>
+                <input type="text" id="edit-pass-input" placeholder="Enter new password">
+            </div>
+            <hr style="border: 1px solid #eee; margin: 15px 0;">
+            <div class="input-group">
+                <label>Assign New Room</label>
+                <input type="number" id="edit-room-input" placeholder="e.g. 102">
+            </div>
+            <div class="input-group">
+                <label>Assign New Bed</label>
+                <select id="edit-bed-input">
+                    <option value="1">Bed 1</option>
+                    <option value="2">Bed 2</option>
+                    <option value="3">Bed 3</option>
+                    <option value="4">Bed 4</option>
+                </select>
+            </div>
+            <button class="btn" style="width: 100%; background-color: #28a745;" onclick="saveAdminChanges()">Save Changes</button>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 10px; color: #dc3545; border-color: #dc3545;" onclick="cancelBooking()">Clear & Cancel Booking</button>
+        </div>
+    </div>
+
     <div id="admin-add-modal" class="modal"><div class="modal-content"><h3>Add Student</h3><input type="text" id="add-id-input" placeholder="ID"><input type="text" id="add-name-input" placeholder="Name"><select id="add-course-input"><option value="CSE">CSE</option><option value="AI">AI</option><option value="EEE">EEE</option><option value="MBA">MBA</option></select><button class="btn" onclick="saveNewStudent()">Enroll</button></div></div>
+    <div id="otp-modal" class="modal"><div class="modal-content"><h3>Verify OTP</h3><input type="text" id="otp-input" placeholder="XXXX"><button class="btn" onclick="verifyOTP()">Confirm</button></div></div>
 
     <script>
         let db = []; let waitlistQueue = {};
         const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
         const ONE_DAY_MS = 60000; 
 
-        let currentUser = null; let currentRoom = null; let selectedBed = null; let isJoiningWaitlist = false; let editingStudentId = null;
+        let currentUser = null, currentRoom = null, selectedBed = null, isJoiningWaitlist = false, editingStudentId = null;
 
         async function pullData() {
             try {
@@ -265,7 +275,7 @@
             goToView('view-payment');
         }
 
-        function validatePayment() { if(document.getElementById('pay-mobile').value.length === 10) document.getElementById('otp-modal').style.display = 'flex'; }
+        function validatePayment() { document.getElementById('otp-modal').style.display = 'flex'; }
         function verifyOTP() { document.getElementById('otp-modal').style.display = 'none'; processPayment(); }
 
         async function processPayment() {
@@ -292,10 +302,10 @@
             updateOccupancySummary();
             const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
             db.forEach(s => {
-                const status = s.adminLocked ? 'Locked' : (s.isWaitlisted ? 'Waitlist' : (s.booked ? 'Paid' : 'Pending'));
+                const statusHtml = s.adminLocked ? '<span style="color:red">Locked</span>' : (s.isWaitlisted ? '<span style="color:orange">Waitlist</span>' : (s.booked ? '<span style="color:green">Paid</span>' : 'Pending'));
                 const r = s.booked ? s.room : (s.isWaitlisted ? s.waitRoom : '-');
                 const b = s.booked ? s.bed : (s.isWaitlisted ? s.waitBed : '-');
-                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${s.pass}</td><td>${status}</td><td>${r}</td><td>${b}</td><td><button onclick="openAdminModal('${s.id}')">Edit</button></td></tr>`;
+                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${s.pass}</td><td>${statusHtml}</td><td>${r}</td><td>${b}</td><td><button class="btn" style="padding:5px 10px; font-size:12px;" onclick="openAdminModal('${s.id}')">Edit</button></td></tr>`;
             });
             goToView('view-admin');
         }
@@ -303,8 +313,7 @@
         function updateOccupancySummary() {
             const tbody = document.getElementById('occupancy-body'); tbody.innerHTML = '';
             Object.keys(floorAllocation).forEach(course => {
-                const floors = floorAllocation[course];
-                const total = floors.length * 8 * 4;
+                const total = floorAllocation[course].length * 8 * 4;
                 const filled = db.filter(s => s.course === course && s.booked).length;
                 const waiting = db.filter(s => s.course === course && s.isWaitlisted).length;
                 tbody.innerHTML += `<tr><td>${course}</td><td>${total}</td><td>${filled}</td><td>${waiting}</td><td>${total-filled}</td></tr>`;
@@ -316,14 +325,49 @@
             document.querySelectorAll('#admin-table-body tr').forEach(r => r.style.display = r.innerText.toUpperCase().includes(q) ? "" : "none");
         }
 
-        function openAdminModal(id) { editingStudentId = id; document.getElementById('admin-edit-modal').style.display = 'flex'; }
+        function openAdminModal(id) { 
+            editingStudentId = id; 
+            const s = db.find(st => st.id === id);
+            document.getElementById('edit-student-name').innerText = s.name + " (" + s.id + ")";
+            document.getElementById('edit-pass-input').value = s.pass;
+            document.getElementById('edit-room-input').value = s.room !== "-" ? s.room : "";
+            document.getElementById('edit-bed-input').value = s.bed !== "-" ? s.bed : "1";
+            document.getElementById('admin-edit-modal').style.display = 'flex'; 
+        }
+
         function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
+        
         async function saveAdminChanges() { 
             const idx = db.findIndex(s => s.id === editingStudentId); 
             db[idx].pass = document.getElementById('edit-pass-input').value || db[idx].pass;
+            db[idx].room = document.getElementById('edit-room-input').value || "-";
+            db[idx].bed = document.getElementById('edit-bed-input').value;
+            db[idx].booked = db[idx].room !== "-";
+            if(db[idx].booked) db[idx].bookingTime = Date.now();
             await pushData(); closeAdminModal(); await goToAdmin();
         }
-        async function logoutAdmin() { goToView('view-home'); }
+
+        async function cancelBooking() {
+            const idx = db.findIndex(s => s.id === editingStudentId);
+            const r = db[idx].room, b = db[idx].bed;
+            db[idx].booked = false; db[idx].room = "-"; db[idx].bed = "-";
+            const key = `${r}-${b}`;
+            if(waitlistQueue[key] && waitlistQueue[key].length > 0) {
+                const sid = waitlistQueue[key].shift();
+                const l = db.findIndex(st => st.id === sid);
+                if(l !== -1) { db[l].isWaitlisted = false; db[l].booked = true; db[l].room = r; db[l].bed = b; db[l].bookingTime = Date.now(); }
+            }
+            await pushData(); closeAdminModal(); await goToAdmin();
+        }
+
+        function logoutAdmin() { goToView('view-home'); }
+        async function saveNewStudent() {
+            const id = document.getElementById('add-id-input').value.toUpperCase();
+            db.push({ id: id, name: document.getElementById('add-name-input').value, course: document.getElementById('add-course-input').value, pass: "1234", booked: false, room: "-", bed: "-", bookingTime: 0, isWaitlisted: false, waitRoom: "-", waitBed: "-", adminLocked: false });
+            await pushData(); document.getElementById('admin-add-modal').style.display = 'none'; await goToAdmin();
+        }
+        function openAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'flex'; }
+        function closeAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'none'; }
     </script>
 </body>
 </html>
