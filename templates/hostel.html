@@ -97,7 +97,10 @@
     </div>
 
     <div id="view-floor" class="page-container">
-        <div class="header-buttons"><button class="btn-back" style="background-color: #4a4a4a;" onclick="openChangePassModal()"><i class="fas fa-key"></i> Password</button><button class="btn-back" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
+        <div class="header-buttons">
+            <button class="btn-back" style="background-color: #4a4a4a;" onclick="openChangePassModal()"><i class="fas fa-key"></i> Password</button>
+            <button class="btn-back" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
         <div class="title"><i class="fas fa-building"></i> Select Floor & Room</div>
         <p style="text-align: center; font-weight: bold; color: #a31d33; margin-top: 15px;">Department: <span id="display-dept"></span></p>
         <div id="already-booked-alert" class="error-box" style="background: #d4edda; color: #155724; display: none;">You have a confirmed booking for Room <span id="alert-room"></span>, Bed <span id="alert-bed"></span>.</div>
@@ -124,7 +127,11 @@
     <div id="view-payment" class="page-container" style="max-width: 500px;">
         <div class="header-buttons"><button class="btn-back" onclick="goToView('view-room')"><i class="fas fa-arrow-left"></i> Back</button></div>
         <div class="title"><i class="fas fa-shield-alt"></i> Secure Checkout</div>
-        <div class="payment-box"><h4 style="margin-top: 0; color: #a31d33;">Hostel Fee Details</h4><p>Room: <strong id="pay-room"></strong> | Bed: <strong id="pay-bed"></strong></p><p style="font-size: 18px;">Total Amount: <strong id="pay-amount" style="color: #28a745;">₹60,000</strong></p></div>
+        <div class="payment-box">
+            <h4 style="margin-top: 0; color: #a31d33;">Hostel Fee Details</h4>
+            <p>Room: <strong id="pay-room"></strong> | Bed: <strong id="pay-bed"></strong></p>
+            <p style="font-size: 18px;">Total Amount: <strong id="pay-amount" style="color: #28a745;">₹60,000</strong></p>
+        </div>
         <div class="payment-icons"><i class="fab fa-cc-visa" style="color: #1a1f71;"></i><i class="fab fa-cc-mastercard" style="color: #eb001b;"></i><i class="fab fa-cc-amex" style="color: #016fd0;"></i></div>
         <div class="input-group"><label>Registered Mobile Number</label><input type="text" id="pay-mobile" placeholder="10-digit number" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')"></div>
         <div class="input-group"><label>Cardholder Name</label><input type="text" id="card-name" placeholder="Name on card"></div>
@@ -162,8 +169,6 @@
     <script>
         let db = []; let waitlistQueue = {};
         const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
-        
-        // TIMEOUT SET TO 1 MINUTE FOR PRESENTATION MAGIC
         const ONE_DAY_MS = 60000; 
 
         let currentUser = null; let currentRoom = null; let selectedBed = null; let isJoiningWaitlist = false; let editingStudentId = null;
@@ -172,7 +177,8 @@
             try {
                 let res = await fetch('/api/sync', { cache: 'no-store' });
                 let data = await res.json();
-                db = data.db; waitlistQueue = data.queue;
+                db = data.db || []; 
+                waitlistQueue = data.queue || {};
                 await processExpirations(); 
             } catch(e) { console.error("Sync Error", e); }
         }
@@ -210,9 +216,18 @@
         }
 
         window.onload = async function() {
-            await pullData();
-            const savedSession = localStorage.getItem("hostelActiveUser");
-            if (savedSession) { const user = db.find(s => s.id === savedSession); if (user) { document.getElementById('login-id').value = user.id; document.getElementById('login-pass').value = user.pass; attemptLogin(); } }
+            try {
+                await pullData();
+                const savedSession = localStorage.getItem("hostelActiveUser");
+                if (savedSession && db.length > 0) { 
+                    const user = db.find(s => s.id === savedSession); 
+                    if (user) { 
+                        document.getElementById('login-id').value = user.id; 
+                        document.getElementById('login-pass').value = user.pass; 
+                        attemptLogin(); 
+                    } 
+                }
+            } catch (err) { console.error("Startup failed", err); }
         };
 
         function goToView(viewId) { document.querySelectorAll('.page-container').forEach(el => el.classList.remove('active-page')); document.getElementById(viewId).classList.add('active-page'); document.getElementById('login-error').style.display = 'none'; document.getElementById('admin-login-error').style.display = 'none'; }
@@ -279,78 +294,39 @@
             if (isWaitlist) { btn.innerText = "Join Waitlist Fee (₹500)"; btn.style.backgroundColor = "#fd7e14"; } else { btn.innerText = "Proceed to Payment"; btn.style.backgroundColor = "#a31d33"; }
         }
 
-        // FIX 2: Correctly switch views and update the price
         function goToPayment() { 
             document.getElementById('pay-room').innerText = currentRoom; 
             document.getElementById('pay-bed').innerText = selectedBed; 
-            
-            // Ensure your HTML has <strong id="pay-amount">...</strong>
             const amountDisplay = document.getElementById('pay-amount');
-            if (amountDisplay) {
-                amountDisplay.innerText = isJoiningWaitlist ? "₹500" : "₹60,000";
-            }
-        
+            if (amountDisplay) { amountDisplay.innerText = isJoiningWaitlist ? "₹500" : "₹60,000"; }
             goToView('view-payment'); 
         }
         function validatePayment() { const mobile = document.getElementById('pay-mobile').value.trim(); if(mobile.length < 10) { alert("Security Alert: Enter 10-digit number."); return; } const maskedMobile = mobile.slice(-4); document.getElementById('otp-message').innerText = `An OTP has been sent to your registered mobile number ending in ****${maskedMobile}.`; document.getElementById('otp-modal').style.display = 'flex'; }
         function closeOTPModal() { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input').value = ''; }
         function verifyOTP() { if(document.getElementById('otp-input').value.length < 4) return; document.getElementById('otp-input-area').style.display = 'none'; document.getElementById('payment-loader').style.display = 'block'; setTimeout(() => { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input-area').style.display = 'block'; document.getElementById('payment-loader').style.display = 'none'; document.getElementById('otp-input').value = ''; processPayment(); }, 1500); }
 
-        // FIX 1: Support multi-person waitlist
         async function processPayment() {
             try {
                 const index = db.findIndex(s => s.id === currentUser.id); 
                 const txnId = "TXN" + Math.floor(Math.random() * 900000 + 100000);
-        
                 if (isJoiningWaitlist) {
-                    currentUser.isWaitlisted = true; 
-                    currentUser.waitRoom = currentRoom; 
-                    currentUser.waitBed = selectedBed; 
-                    db[index] = currentUser;
-                
+                    currentUser.isWaitlisted = true; currentUser.waitRoom = currentRoom; currentUser.waitBed = selectedBed; db[index] = currentUser;
                     const queueKey = `${currentRoom}-${selectedBed}`; 
-                    
-                    // Check if a queue already exists for this bed
-                    if (!waitlistQueue[queueKey]) {
-                        waitlistQueue[queueKey] = []; // Create a new empty list if none exists
-                    }
-                    
-                    // Check if the student is already in the list (prevents duplicates)
-                    if (!waitlistQueue[queueKey].includes(currentUser.id)) {
-                        waitlistQueue[queueKey].push(currentUser.id); // Add them to the end of the line
-                    }
-                
+                    if (!waitlistQueue[queueKey]) { waitlistQueue[queueKey] = []; }
+                    if (!waitlistQueue[queueKey].includes(currentUser.id)) { waitlistQueue[queueKey].push(currentUser.id); }
                     document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; 
                     document.getElementById('receipt-wait-msg').style.display = 'block';
-                    } else {
-                    currentUser.booked = true; 
-                    currentUser.room = currentRoom; 
-                    currentUser.bed = selectedBed; 
-                    // FIX: Ensure this matches the BIGINT type in your DB
-                    currentUser.bookingTime = Date.now(); 
-                    currentUser.adminLocked = false; 
-                    db[index] = currentUser;
-                    
+                } else {
+                    currentUser.booked = true; currentUser.room = currentRoom; currentUser.bed = selectedBed;
+                    currentUser.bookingTime = Date.now(); currentUser.adminLocked = false; db[index] = currentUser;
                     document.getElementById('receipt-title').innerText = "Payment Successful!"; 
                     document.getElementById('receipt-wait-msg').style.display = 'none';
                 }
-        
-                // Send data to Render/PostgreSQL
                 await pushData(); 
-        
-                // Fill receipt details
-                document.getElementById('receipt-txn').innerText = txnId; 
-                document.getElementById('receipt-name').innerText = currentUser.name; 
-                document.getElementById('receipt-room').innerText = currentRoom; 
-                document.getElementById('receipt-bed').innerText = selectedBed; 
-        
-                // Switch to the receipt page
+                document.getElementById('receipt-txn').innerText = txnId; document.getElementById('receipt-name').innerText = currentUser.name; 
+                document.getElementById('receipt-room').innerText = currentRoom; document.getElementById('receipt-bed').innerText = selectedBed; 
                 goToView('view-receipt');
-        
-            } catch (error) {
-                console.error("Payment Processing Error:", error);
-                alert("Payment went through, but there was an error saving your receipt. Please refresh the page.");
-            }
+            } catch (error) { console.error("Payment Error", error); }
         }
 
         async function goToAdmin() {
@@ -358,76 +334,41 @@
             const tbody = document.getElementById('admin-table-body'); 
             if (!tbody) return; 
             tbody.innerHTML = '';
-        
             db.forEach(student => {
                 let statusHtml = '<span class="status-pending">Pending</span>'; 
                 let lockBtn = ''; 
-                
-                // 1. Check if Admin Locked (Highest Priority)
-                if (student.adminLocked) {
-                    statusHtml = '<span style="color: #a31d33; font-weight: bold;">Locked (Admin)</span>';
-                } 
-                // 2. Check if currently in the Waiting List
-                else if (student.isWaitlisted) { 
-                    statusHtml = `<span style="color: #fd7e14; font-weight: bold;">Waiting List (${student.waitRoom || '-'}-${student.waitBed || '-'})</span>`; 
-                }
-                // 3. Check if standard Paid & Booked
+                if (student.adminLocked) { statusHtml = '<span style="color: #a31d33; font-weight: bold;">Locked (Admin)</span>'; }
+                else if (student.isWaitlisted) { statusHtml = `<span style="color: #fd7e14; font-weight: bold;">Waiting List (${student.waitRoom || '-'}-${student.waitBed || '-'})</span>`; }
                 else if (student.booked) {
                     statusHtml = '<span style="color: #28a745; font-weight: bold;">Paid & Booked</span>'; 
                     lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin-left: 5px;" onclick="forceLockBed('${student.id}')"><i class="fas fa-lock"></i></button>`; 
                 }
-
-                const actionBtn = `<div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="openAdminModal('${student.id}')">Edit</button>` + lockBtn + `</div>`;
-                
-                // Use || '-' to handle empty Room/Bed columns
                 const displayRoom = student.booked ? student.room : (student.isWaitlisted ? student.waitRoom : '-');
                 const displayBed = student.booked ? student.bed : (student.isWaitlisted ? student.waitBed : '-');
-
-                tbody.innerHTML += `<tr>
-                    <td>${student.id || '-'}</td>
-                    <td>${student.name || 'Unknown'}</td>
-                    <td>${student.course || '-'}</td>
-                    <td><code style="color: #a31d33;">${student.pass || '-'}</code></td>
-                    <td>${statusHtml}</td>
-                    <td>${displayRoom}</td>
-                    <td>${displayBed}</td>
-                    <td>${actionBtn}</td>
-                </tr>`;
+                tbody.innerHTML += `<tr><td>${student.id}</td><td>${student.name}</td><td>${student.course}</td><td><code>${student.pass}</code></td><td>${statusHtml}</td><td>${displayRoom}</td><td>${displayBed}</td><td><div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="openAdminModal('${student.id}')">Edit</button>${lockBtn}</div></td></tr>`;
             });
             goToView('view-admin');
         }
-        }
-        async function forceLockBed(studentId) { if(confirm("Manually lock this bed? This removes the 1-day timer and closes the waiting list.")) { const index = db.findIndex(s => s.id === studentId); db[index].adminLocked = true; await pushData(); await goToAdmin(); alert("Bed successfully locked!"); } }
+
+        async function forceLockBed(studentId) { if(confirm("Manually lock this bed?")) { const index = db.findIndex(s => s.id === studentId); db[index].adminLocked = true; await pushData(); await goToAdmin(); } }
         function openAdminModal(studentId) { editingStudentId = studentId; const student = db.find(s => s.id === studentId); document.getElementById('edit-student-name').innerText = student.name + " (" + student.id + ")"; document.getElementById('edit-pass-input').value = student.pass; document.getElementById('edit-room-input').value = student.room !== "-" ? student.room : ""; document.getElementById('edit-bed-input').value = student.bed !== "-" ? student.bed : "1"; document.getElementById('admin-edit-modal').style.display = 'flex'; }
         function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
-
         async function saveAdminChanges() {
-            const newPass = document.getElementById('edit-pass-input').value.trim(); const newRoom = document.getElementById('edit-room-input').value; const newBed = document.getElementById('edit-bed-input').value;
-            if(!newPass || !newRoom) return;
-            const index = db.findIndex(s => s.id === editingStudentId); const oldRoom = db[index].room; const oldBed = db[index].bed;
-            db[index].pass = newPass; db[index].booked = true; db[index].room = newRoom; db[index].bed = newBed; db[index].bookingTime = Date.now(); db[index].adminLocked = false;
-            if (oldRoom !== "-" && (oldRoom !== newRoom || oldBed !== newBed)) { checkQueueForFreedBed(oldRoom, oldBed); }
-            await pushData(); closeAdminModal(); await goToAdmin(); alert("Updated successfully.");
+            const index = db.findIndex(s => s.id === editingStudentId);
+            db[index].pass = document.getElementById('edit-pass-input').value.trim();
+            db[index].room = document.getElementById('edit-room-input').value;
+            db[index].bed = document.getElementById('edit-bed-input').value;
+            db[index].booked = true; db[index].bookingTime = Date.now();
+            await pushData(); closeAdminModal(); await goToAdmin();
         }
-
-        async function cancelBooking() {
-            if(confirm("Cancel booking? The Queue System will auto-assign this bed if someone is waiting!")) {
-                const index = db.findIndex(s => s.id === editingStudentId); const freedRoom = db[index].room; const freedBed = db[index].bed;
-                db[index].booked = false; db[index].room = "-"; db[index].bed = "-"; db[index].bookingTime = 0; db[index].adminLocked = false;
-                checkQueueForFreedBed(freedRoom, freedBed); await pushData(); closeAdminModal(); await goToAdmin(); 
+        async function cancelBooking() { if(confirm("Cancel booking?")) { const index = db.findIndex(s => s.id === editingStudentId); const fr = db[index].room, fb = db[index].bed; db[index].booked = false; db[index].room = "-"; db[index].bed = "-"; db[index].bookingTime = 0; checkQueueForFreedBed(fr, fb); await pushData(); closeAdminModal(); await goToAdmin(); } }
+        function checkQueueForFreedBed(r, b) {
+            const key = `${r}-${b}`;
+            if (waitlistQueue[key] && waitlistQueue[key].length > 0) {
+                const sid = waitlistQueue[key].shift(); const idx = db.findIndex(s => s.id === sid);
+                db[idx].isWaitlisted = false; db[idx].booked = true; db[idx].room = r; db[idx].bed = b; db[idx].bookingTime = Date.now();
             }
         }
-
-        function checkQueueForFreedBed(room, bed) {
-            const queueKey = `${room}-${bed}`;
-            if (waitlistQueue[queueKey] && waitlistQueue[queueKey].length > 0) {
-                const luckyStudentId = waitlistQueue[queueKey].shift(); 
-                const luckyIndex = db.findIndex(s => s.id === luckyStudentId);
-                db[luckyIndex].isWaitlisted = false; db[luckyIndex].waitRoom = "-"; db[luckyIndex].waitBed = "-"; db[luckyIndex].booked = true; db[luckyIndex].room = room; db[luckyIndex].bed = bed; db[luckyIndex].bookingTime = Date.now(); db[luckyIndex].adminLocked = false;
-                alert(`QUEUE SYSTEM ALERT: Bed ${bed} in Room ${room} was just assigned to ${luckyStudentId} from the Waitlist Queue!`);
-            }
-        }
-
         function openAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'flex'; }
         function closeAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'none'; }
         async function saveNewStudent() { const id = document.getElementById('add-id-input').value.trim().toUpperCase(); if(!id) return; db.push({ id: id, name: document.getElementById('add-name-input').value, course: document.getElementById('add-course-input').value, pass: document.getElementById('add-pass-input').value, booked: false, room: "-", bed: "-", bookingTime: 0, isWaitlisted: false, waitRoom: "-", waitBed: "-", adminLocked: false }); await pushData(); closeAddStudentModal(); await goToAdmin(); }
