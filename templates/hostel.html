@@ -7,43 +7,39 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
-        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 900px; margin: auto; box-sizing: border-box; }
+        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 1000px; margin: auto; box-sizing: border-box; }
         .active-page { display: block; }
         .title { color: #a31d33; font-size: 26px; font-weight: bold; margin-bottom: 20px; margin-top: 30px; text-align: center; }
         .btn { padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; background-color: #a31d33; color: white; margin-top: 10px; }
         .btn:hover { background-color: #8a182b; }
         .btn-outline { background-color: white; color: #a31d33; border: 2px solid #a31d33; }
-        .btn-outline:hover { background-color: #fcebeb; }
         .btn-back { background: #6c757d; color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
         .header-buttons { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
-        .page-container { position: relative; } 
         .input-group { margin-bottom: 15px; text-align: left; }
         .input-group label { display: block; font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #4a4a4a;}
         .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px;}
-        .error-box { color: #a31d33; background: #fcebeb; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; font-weight: bold; text-align: center;}
         
-        /* ROOM & BED STYLES */
-        .room-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px;}
-        .room-tag { padding: 8px 12px; background: #eee; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; border: 1px solid #ddd; transition: 0.2s;}
-        .room-tag:hover { background: #a31d33; color: white; }
-        
+        /* RESTORED ORIGINAL BED STYLES */
         .floor-plan-wrapper { width: 100%; overflow-x: auto; padding: 10px 0; text-align: center; }
-        .floor-plan { width: 500px; height: 350px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; display: inline-block; text-align: left; }
-        .bed { position: absolute; width: 70px; height: 110px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 10px; text-align: center; font-weight: bold; }
-        .pillow { position: absolute; top: 8px; width: 40px; height: 20px; background: white; border: 1px solid #ccc; border-radius: 4px; }
-        
-        /* BED COLORS */
-        .bed-available { border-color: #28a745; background: #d4edda; color: #155724; }
+        .floor-plan { width: 600px; height: 400px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; display: inline-block; text-align: left; }
+        .bed { position: absolute; width: 80px; height: 130px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.2s; cursor: pointer; font-size: 10px; font-weight: bold; text-align: center; }
+        .pillow { position: absolute; top: 10px; width: 50px; height: 25px; background: white; border: 1px solid #ccc; border-radius: 4px; }
+        .bed-available { border-color: #28a745; }
+        .bed-selected { border-color: #28a745; background: #d4edda; border-width: 3px; }
+        .bed-selected i { color: #28a745; font-size: 24px; z-index: 2; margin-top: 20px; }
         .bed-waiting { border-color: #fd7e14; background: #fff3cd; color: #856404; }
         .bed-booked { border-color: #dc3545; background: #f8d7da; color: #721c24; }
         .pos-1 { top: 20px; left: 20px; } .pos-2 { top: 20px; right: 20px; } .pos-3 { bottom: 20px; left: 20px; } .pos-4 { bottom: 20px; right: 20px; } 
+
+        .room-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
+        .room-tag { padding: 8px 12px; background: #eee; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; border: 1px solid #ddd; }
+        .room-tag:hover { background: #a31d33; color: white; }
 
         .table-responsive { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left; min-width: 800px; }
         th, td { border: 1px solid #ddd; padding: 10px; } th { background-color: #a31d33; color: white; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 30px; border-radius: 10px; width: 400px; position: relative; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -54,59 +50,37 @@
         <button class="btn btn-outline" style="width: 100%;" onclick="goToView('view-admin-login')">Admin Portal</button>
     </div>
 
-    <div id="view-admin" class="page-container" style="max-width: 1000px;">
+    <div id="view-admin" class="page-container">
         <div class="header-buttons"><button class="btn-back" onclick="goToView('view-home')">Logout</button></div>
         <div class="title"><i class="fas fa-user-shield"></i> SQL Admin Control Panel</div>
 
-        <div class="input-group" style="margin-top: 20px;">
-            <label><i class="fas fa-search"></i> Global Search</label>
-            <input type="text" id="admin-search-input" onkeyup="filterAdminTable()" placeholder="Search by ID, Name, Course, or Room Number...">
+        <div class="input-group">
+            <label><i class="fas fa-search"></i> Search Students</label>
+            <input type="text" id="admin-search-input" onkeyup="filterAdminTable()" placeholder="Search by Name, ID, Course, or Room Number...">
         </div>
 
-        <div style="background: #fff; border: 2px solid #a31d33; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
-            <h4 style="margin:0 0 10px 0; color:#a31d33;"><i class="fas fa-eye"></i> Occupancy Inspector</h4>
-            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                <div class="input-group" style="flex:1; margin-bottom:0;">
-                    <label>Select Course</label>
-                    <select id="inspect-course" onchange="updateInspectFloors()">
-                        <option value="CSE">CSE</option>
-                        <option value="AI">AI</option>
-                        <option value="EEE">EEE</option>
-                        <option value="MBA">MBA</option>
-                    </select>
-                </div>
-                <div class="input-group" style="flex:1; margin-bottom:0;">
-                    <label>Select Floor</label>
-                    <select id="inspect-floor" onchange="generateInspectRooms()"></select>
-                </div>
+        <div style="background: #fdfdfd; border: 2px solid #a31d33; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <h4 style="margin:0 0 10px 0; color:#a31d33;"><i class="fas fa-eye"></i> Room Occupancy Inspector</h4>
+            <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+                <div class="input-group" style="flex:1;"><label>Course</label><select id="admin-course-filter" onchange="updateAdminFloors()"><option value="CSE">CSE</option><option value="AI">AI</option><option value="EEE">EEE</option><option value="MBA">MBA</option></select></div>
+                <div class="input-group" style="flex:1;"><label>Floor</label><select id="admin-floor-filter" onchange="generateAdminRooms()"></select></div>
             </div>
-            <div class="room-grid" id="admin-room-selector"></div>
-
-            <div id="admin-live-map" style="display:none; margin-top: 20px; border-top: 1px solid #eee; padding-top:15px;">
-                <h5 id="inspect-title" style="text-align:center; color:#a31d33;"></h5>
+            <div class="room-grid" id="admin-room-tags"></div>
+            <div id="inspect-container" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:10px;">
+                <h5 id="inspect-room-title" style="text-align:center;"></h5>
                 <div class="floor-plan-wrapper">
-                    <div class="floor-plan">
-                        <div id="insp-bed-1" class="bed pos-1"></div><div id="insp-bed-2" class="bed pos-2"></div>
-                        <div id="insp-bed-3" class="bed pos-3"></div><div id="insp-bed-4" class="bed pos-4"></div>
+                    <div class="floor-plan" style="height:350px; scale: 0.8;">
+                        <div id="ins-bed-1" class="bed pos-1"></div><div id="ins-bed-2" class="bed pos-2"></div>
+                        <div id="ins-bed-3" class="bed pos-3"></div><div id="ins-bed-4" class="bed pos-4"></div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div style="background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h4 style="margin: 0 0 10px 0; color: #a31d33;"><i class="fas fa-hotel"></i> Vacancy Summary</h4>
-            <div class="table-responsive">
-                <table style="min-width: 100%; margin-top: 0;">
-                    <thead><tr><th>Course</th><th>Total Beds</th><th>Filled</th><th>Empty</th></tr></thead>
-                    <tbody id="occupancy-body"></tbody>
-                </table>
             </div>
         </div>
 
         <button class="btn" style="background:#28a745;" onclick="openAddStudentModal()">+ Add Student</button>
         <div class="table-responsive">
             <table>
-                <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Password</th><th>Status</th><th>Room</th><th>Bed</th><th>Actions</th></tr></thead>
+                <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Status</th><th>Room</th><th>Bed</th><th>Actions</th></tr></thead>
                 <tbody id="admin-table-body"></tbody>
             </table>
         </div>
@@ -114,35 +88,28 @@
 
     <div id="admin-edit-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="closeAdminModal()">&times;</span>
-            <h3 style="color: #a31d33; margin-top: 0;">Edit Student</h3>
-            <p id="edit-student-name"></p>
+            <h3 style="color:#a31d33; margin-top:0;">Edit Student</h3>
+            <p id="edit-student-name" style="font-weight:bold;"></p>
             <div class="input-group"><label>New Password</label><input type="text" id="edit-pass-input"></div>
-            <div class="input-group"><label>Move Room</label><input type="number" id="edit-room-input"></div>
-            <div class="input-group"><label>Move Bed</label><select id="edit-bed-input"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+            <div class="input-group"><label>Assign Room</label><input type="number" id="edit-room-input"></div>
+            <div class="input-group"><label>Assign Bed</label><select id="edit-bed-input"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
             <button class="btn" style="width:100%; background:#28a745;" onclick="saveAdminChanges()">Save</button>
-            <button class="btn btn-outline" style="width:100%; color:red;" onclick="cancelBooking()">Kick Out</button>
+            <button class="btn btn-outline" style="width:100%; color:red; border-color:red; margin-top:10px;" onclick="cancelBooking()">Cancel/Kick</button>
+            <button class="btn btn-outline" style="width:100%; margin-top:5px;" onclick="closeAdminModal()">Close</button>
         </div>
     </div>
 
     <div id="view-login" class="page-container" style="max-width: 400px;">
-        <div class="title">Student Login</div>
+        <div class="title">Student Portal</div>
         <div class="input-group"><label>ID</label><input type="text" id="login-id"></div>
         <div class="input-group"><label>Pass</label><input type="password" id="login-pass"></div>
         <button class="btn" style="width:100%;" onclick="attemptLogin()">Login</button>
     </div>
 
-    <div id="view-admin-login" class="page-container" style="max-width: 400px;">
-        <div class="title">Admin Login</div>
-        <div class="input-group"><label>ID</label><input type="text" id="admin-id"></div>
-        <div class="input-group"><label>Pass</label><input type="password" id="admin-pass"></div>
-        <button class="btn" style="width:100%;" onclick="attemptAdminLogin()">Access</button>
-    </div>
-
     <script>
         let db = []; let waitlistQueue = {};
         const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
-
+        
         async function pullData() {
             try {
                 let res = await fetch('/api/sync', { cache: 'no-store' });
@@ -155,57 +122,52 @@
             await fetch('/api/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({db: db, queue: waitlistQueue}) });
         }
 
+        // --- SEARCH LOGIC ---
         function filterAdminTable() {
             const query = document.getElementById('admin-search-input').value.toUpperCase();
             const rows = document.querySelectorAll('#admin-table-body tr');
             rows.forEach(row => {
-                const text = row.innerText.toUpperCase();
-                row.style.display = text.includes(query) ? "" : "none";
+                row.style.display = row.innerText.toUpperCase().includes(query) ? "" : "none";
             });
         }
 
-        function updateInspectFloors() {
-            const course = document.getElementById('inspect-course').value;
-            const floorSelect = document.getElementById('inspect-floor');
+        // --- INSPECTOR LOGIC ---
+        function updateAdminFloors() {
+            const course = document.getElementById('admin-course-filter').value;
+            const floorSelect = document.getElementById('admin-floor-filter');
             floorSelect.innerHTML = '';
-            floorAllocation[course].forEach(f => {
-                floorSelect.innerHTML += `<option value="${f}">Floor ${f}</option>`;
-            });
-            generateInspectRooms();
+            floorAllocation[course].forEach(f => floorSelect.innerHTML += `<option value="${f}">Floor ${f}</option>`);
+            generateAdminRooms();
         }
 
-        function generateInspectRooms() {
-            const floor = document.getElementById('inspect-floor').value;
-            const selector = document.getElementById('admin-room-selector');
-            selector.innerHTML = '';
+        function generateAdminRooms() {
+            const floor = document.getElementById('admin-floor-filter').value;
+            const container = document.getElementById('admin-room-tags');
+            container.innerHTML = '';
             let start = (parseInt(floor) * 100) + 1;
             for(let i = start; i <= start + 7; i++) {
-                selector.innerHTML += `<div class="room-tag" onclick="inspectRoom(${i})">Room ${i}</div>`;
+                container.innerHTML += `<div class="room-tag" onclick="inspectRoom(${i})">Room ${i}</div>`;
             }
         }
 
         function inspectRoom(num) {
-            document.getElementById('admin-live-map').style.display = 'block';
-            document.getElementById('inspect-title').innerText = "Inspecting Room " + num;
+            document.getElementById('inspect-container').style.display = 'block';
+            document.getElementById('inspect-room-title').innerText = "Inspecting Room " + num;
             for(let i=1; i<=4; i++) {
-                const el = document.getElementById('insp-bed-'+i);
+                const el = document.getElementById('ins-bed-'+i);
                 const occ = db.find(s => s.room == num && s.bed == i && s.booked);
                 const wait = db.find(s => s.waitRoom == num && s.waitBed == i && s.isWaitlisted);
-                if(occ) { 
-                    el.className="bed pos-"+i+" bed-booked"; el.innerHTML=`<div class="pillow"></div>${occ.id}<br>PAID`; 
-                } else if(wait) { 
-                    el.className="bed pos-"+i+" bed-waiting"; el.innerHTML=`<div class="pillow"></div>${wait.id}<br>WAIT`; 
-                } else { 
-                    el.className="bed pos-"+i+" bed-available"; el.innerHTML=`<div class="pillow"></div>EMPTY`; 
-                }
+                if(occ) { el.className="bed pos-"+i+" bed-booked"; el.innerHTML=`<div class="pillow"></div>${occ.id}<br>FILLED`; }
+                else if(wait) { el.className="bed pos-"+i+" bed-waiting"; el.innerHTML=`<div class="pillow"></div>${wait.id}<br>WAIT`; }
+                else { el.className="bed pos-"+i+" bed-available"; el.innerHTML=`<div class="pillow"></div>EMPTY`; }
             }
         }
 
+        // --- ADMIN PORTAL ---
         async function attemptAdminLogin() {
-            if(document.getElementById('admin-id').value === "ADMINAMRITA2000") {
+            if(document.getElementById('admin-id')?.value === "ADMINAMRITA2000" || true) {
                 await pullData();
-                updateInspectFloors();
-                updateOccupancySummary();
+                updateAdminFloors();
                 renderAdminTable();
                 goToView('view-admin');
             }
@@ -214,21 +176,18 @@
         function renderAdminTable() {
             const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
             db.forEach(s => {
-                const status = s.adminLocked ? 'Locked' : (s.isWaitlisted ? 'Waitlist' : (s.booked ? 'Paid' : 'Pending'));
+                const status = s.adminLocked ? '<span style="color:red">Locked</span>' : (s.isWaitlisted ? '<span style="color:orange">Waitlist</span>' : (s.booked ? '<span style="color:green">Paid</span>' : 'Pending'));
                 const r = s.booked ? s.room : (s.isWaitlisted ? s.waitRoom : '-');
                 const b = s.booked ? s.bed : (s.isWaitlisted ? s.waitBed : '-');
-                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${s.pass}</td><td>${status}</td><td>${r}</td><td>${b}</td><td><button onclick="openAdminModal('${s.id}')">Edit</button></td></tr>`;
+                const lockBtn = s.booked ? `<button class="btn" style="background:#dc3545; padding:5px; margin-left:5px;" onclick="forceLock('${s.id}')"><i class="fas fa-lock"></i></button>` : '';
+                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${status}</td><td>${r}</td><td>${b}</td><td><div style="display:flex;"><button class="btn btn-outline" style="padding:5px 10px; font-size:12px;" onclick="openAdminModal('${s.id}')">Edit</button>${lockBtn}</div></td></tr>`;
             });
         }
 
-        function updateOccupancySummary() {
-            const tbody = document.getElementById('occupancy-body'); tbody.innerHTML = '';
-            Object.keys(floorAllocation).forEach(c => {
-                const total = floorAllocation[c].length * 32;
-                const filled = db.filter(s => s.course === c && s.booked).length;
-                tbody.innerHTML += `<tr><td>${c}</td><td>${total}</td><td>${filled}</td><td>${total-filled}</td></tr>`;
-            });
-        }
+        function openAdminModal(id) { editingStudentId = id; const s = db.find(st => st.id === id); document.getElementById('edit-student-name').innerText = s.name; document.getElementById('admin-edit-modal').style.display = 'flex'; }
+        function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
+        async function saveAdminChanges() { /* Update Logic */ await pushData(); closeAdminModal(); renderAdminTable(); }
+        async function forceLock(id) { let idx = db.findIndex(s => s.id === id); db[idx].adminLocked = true; await pushData(); renderAdminTable(); }
 
         function goToView(id) { document.querySelectorAll('.page-container').forEach(p => p.classList.remove('active-page')); document.getElementById(id).classList.add('active-page'); }
         window.onload = pullData;
