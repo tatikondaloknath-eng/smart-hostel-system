@@ -279,72 +279,64 @@
             if (isWaitlist) { btn.innerText = "Join Waitlist Fee (₹500)"; btn.style.backgroundColor = "#fd7e14"; } else { btn.innerText = "Proceed to Payment"; btn.style.backgroundColor = "#a31d33"; }
         }
 
-        function goToPayment() { 
-            document.getElementById('pay-room').innerText = currentRoom; 
-            document.getElementById('pay-bed').innerText = selectedBed; 
-            document.getElementById('pay-mobile').value = ''; 
-            document.getElementById('card-name').value = ''; 
-            document.getElementById('card-num').value = ''; 
-            document.getElementById('card-cvv').value = '';
-            const amountDisplay = document.getElementById('pay-amount');
-            if (isJoiningWaitlist) {
-                amountDisplay.innerText = "₹500";
-            } else {
-                amountDisplay.innerText = "₹60,000";
-            }
+        // FIX 2: Correctly switch views and update the price
+function goToPayment() { 
+    document.getElementById('pay-room').innerText = currentRoom; 
+    document.getElementById('pay-bed').innerText = selectedBed; 
+    
+    // Ensure your HTML has <strong id="pay-amount">...</strong>
+    const amountDisplay = document.getElementById('pay-amount');
+    if (amountDisplay) {
+        amountDisplay.innerText = isJoiningWaitlist ? "₹500" : "₹60,000";
+    }
 
-            goToView('view-payment');
-        }
+    goToView('view-payment'); 
+}
         function validatePayment() { const mobile = document.getElementById('pay-mobile').value.trim(); if(mobile.length < 10) { alert("Security Alert: Enter 10-digit number."); return; } const maskedMobile = mobile.slice(-4); document.getElementById('otp-message').innerText = `An OTP has been sent to your registered mobile number ending in ****${maskedMobile}.`; document.getElementById('otp-modal').style.display = 'flex'; }
         function closeOTPModal() { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input').value = ''; }
         function verifyOTP() { if(document.getElementById('otp-input').value.length < 4) return; document.getElementById('otp-input-area').style.display = 'none'; document.getElementById('payment-loader').style.display = 'block'; setTimeout(() => { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input-area').style.display = 'block'; document.getElementById('payment-loader').style.display = 'none'; document.getElementById('otp-input').value = ''; processPayment(); }, 1500); }
 
-        async function processPayment() {
-            const index = db.findIndex(s => s.id === currentUser.id); 
-            const txnId = "TXN" + Math.floor(Math.random() * 900000 + 100000);
-            if (isJoiningWaitlist) {
-                // Update student state
-                currentUser.isWaitlisted = true; 
-                currentUser.waitRoom = currentRoom; 
-                currentUser.waitBed = selectedBed; 
-                db[index] = currentUser;
-        
-                // MANAGE THE QUEUE
-                const queueKey = `${currentRoom}-${selectedBed}`; 
-                
-                // Step 1: Check if this specific room-bed queue already exists
-                if (!waitlistQueue[queueKey]) {
-                    waitlistQueue[queueKey] = []; // Create new list if empty
-                }
-                
-                // Step 2: Add student only if they aren't already in this specific queue
-                if (!waitlistQueue[queueKey].includes(currentUser.id)) {
-                    waitlistQueue[queueKey].push(currentUser.id); 
-                }
-        
-                document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; 
-                document.getElementById('receipt-wait-msg').style.display = 'block';
-            } else {
-                // Standard booking logic
-                currentUser.booked = true; 
-                currentUser.room = currentRoom; 
-                currentUser.bed = selectedBed; 
-                currentUser.bookingTime = Date.now(); 
-                currentUser.adminLocked = false; 
-                db[index] = currentUser;
-                document.getElementById('receipt-title').innerText = "Payment Successful!"; 
-                document.getElementById('receipt-wait-msg').style.display = 'none';
-            }
+        // FIX 1: Support multi-person waitlist
+async function processPayment() {
+    const index = db.findIndex(s => s.id === currentUser.id); 
+    const txnId = "TXN" + Math.floor(Math.random() * 900000 + 100000);
 
-            // Push the updated database and queue to the server
-            await pushData(); 
+    if (isJoiningWaitlist) {
+        currentUser.isWaitlisted = true; 
+        currentUser.waitRoom = currentRoom; 
+        currentUser.waitBed = selectedBed; 
+        db[index] = currentUser;
+
+        const queueKey = `${currentRoom}-${selectedBed}`; 
+        if (!waitlistQueue[queueKey]) { waitlistQueue[queueKey] = []; }
         
-            document.getElementById('receipt-txn').innerText = txnId; 
-            document.getElementById('receipt-name').innerText = currentUser.name; 
-            document.getElementById('receipt-room').innerText = currentRoom; 
-            document.getElementById('receipt-bed').innerText = selectedBed; 
-            goToView('view-receipt');
+        // Push the student to the end of the existing list
+        if (!waitlistQueue[queueKey].includes(currentUser.id)) {
+            waitlistQueue[queueKey].push(currentUser.id); 
         }
+
+        document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; 
+        document.getElementById('receipt-wait-msg').style.display = 'block';
+    } else {
+        currentUser.booked = true; 
+        currentUser.room = currentRoom; 
+        currentUser.bed = selectedBed; 
+        currentUser.bookingTime = Date.now(); 
+        currentUser.adminLocked = false; 
+        db[index] = currentUser;
+        document.getElementById('receipt-title').innerText = "Payment Successful!"; 
+        document.getElementById('receipt-wait-msg').style.display = 'none';
+    }
+
+    await pushData(); 
+    document.getElementById('receipt-txn').innerText = txnId; 
+    document.getElementById('receipt-name').innerText = currentUser.name; 
+    document.getElementById('receipt-room').innerText = currentRoom; 
+    document.getElementById('receipt-bed').innerText = selectedBed; 
+    goToView('view-receipt');
+}
+
+
 
         async function goToAdmin() {
             await pullData(); 
