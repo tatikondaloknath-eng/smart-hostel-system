@@ -169,6 +169,8 @@
     <script>
         let db = []; let waitlistQueue = {};
         const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
+        
+        // TIMEOUT SET TO 1 MINUTE FOR PRESENTATION MAGIC
         const ONE_DAY_MS = 60000; 
 
         let currentUser = null; let currentRoom = null; let selectedBed = null; let isJoiningWaitlist = false; let editingStudentId = null;
@@ -337,15 +339,33 @@
             db.forEach(student => {
                 let statusHtml = '<span class="status-pending">Pending</span>'; 
                 let lockBtn = ''; 
-                if (student.adminLocked) { statusHtml = '<span style="color: #a31d33; font-weight: bold;">Locked (Admin)</span>'; }
-                else if (student.isWaitlisted) { statusHtml = `<span style="color: #fd7e14; font-weight: bold;">Waiting List (${student.waitRoom || '-'}-${student.waitBed || '-'})</span>`; }
-                else if (student.booked) {
+                
+                // Priority logic for statuses
+                if (student.adminLocked) { 
+                    statusHtml = '<span style="color: #a31d33; font-weight: bold;">Locked (Admin)</span>'; 
+                } else if (student.isWaitlisted) { 
+                    statusHtml = `<span style="color: #fd7e14; font-weight: bold;">Waiting List (${student.waitRoom || '-'}-${student.waitBed || '-'})</span>`; 
+                } else if (student.booked) {
                     statusHtml = '<span style="color: #28a745; font-weight: bold;">Paid & Booked</span>'; 
-                    lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin-left: 5px;" onclick="forceLockBed('${student.id}')"><i class="fas fa-lock"></i></button>`; 
+                    lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin: 0; color: white; border: none; margin-left: 5px;" onclick="forceLockBed('${student.id}')" title="Permanently Lock"><i class="fas fa-lock"></i></button>`; 
                 }
+
+                const actionBtn = `<div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px; margin: 0;" onclick="openAdminModal('${student.id}')">Edit</button>${lockBtn}</div>`;
+                
+                // Show room/bed regardless of whether they are waitlisted or fully booked
                 const displayRoom = student.booked ? student.room : (student.isWaitlisted ? student.waitRoom : '-');
                 const displayBed = student.booked ? student.bed : (student.isWaitlisted ? student.waitBed : '-');
-                tbody.innerHTML += `<tr><td>${student.id}</td><td>${student.name}</td><td>${student.course}</td><td><code>${student.pass}</code></td><td>${statusHtml}</td><td>${displayRoom}</td><td>${displayBed}</td><td><div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="openAdminModal('${student.id}')">Edit</button>${lockBtn}</div></td></tr>`;
+
+                tbody.innerHTML += `<tr>
+                    <td>${student.id || '-'}</td>
+                    <td>${student.name || 'Unknown'}</td>
+                    <td>${student.course || '-'}</td>
+                    <td><code style="color: #a31d33; font-weight: bold;">${student.pass || '-'}</code></td>
+                    <td>${statusHtml}</td>
+                    <td>${displayRoom}</td>
+                    <td>${displayBed}</td>
+                    <td>${actionBtn}</td>
+                </tr>`;
             });
             goToView('view-admin');
         }
