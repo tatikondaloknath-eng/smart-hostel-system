@@ -279,7 +279,21 @@
             if (isWaitlist) { btn.innerText = "Join Waitlist Fee (₹500)"; btn.style.backgroundColor = "#fd7e14"; } else { btn.innerText = "Proceed to Payment"; btn.style.backgroundColor = "#a31d33"; }
         }
 
-        function goToPayment() { document.getElementById('pay-room').innerText = currentRoom; document.getElementById('pay-bed').innerText = selectedBed; document.getElementById('pay-mobile').value = ''; document.getElementById('card-name').value = ''; document.getElementById('card-num').value = ''; document.getElementById('card-cvv').value = ''; goToView('view-payment'); }
+        function goToPayment() { 
+            document.getElementById('pay-room').innerText = currentRoom; 
+            document.getElementById('pay-bed').innerText = selectedBed; 
+            document.getElementById('pay-mobile').value = ''; 
+            document.getElementById('card-name').value = ''; 
+            document.getElementById('card-num').value = ''; 
+            document.getElementById('card-cvv').value = ''; 
+            const amountElement = document.querySelector('.payment-box strong[style*="color: #28a745;"]');
+            if (isJoiningWaitlist) {
+                amountElement.innerText = "₹500";
+            } else {
+                amountElement.innerText = "₹60,000";
+            }
+            goToView('view-payment'); 
+        }
         function validatePayment() { const mobile = document.getElementById('pay-mobile').value.trim(); if(mobile.length < 10) { alert("Security Alert: Enter 10-digit number."); return; } const maskedMobile = mobile.slice(-4); document.getElementById('otp-message').innerText = `An OTP has been sent to your registered mobile number ending in ****${maskedMobile}.`; document.getElementById('otp-modal').style.display = 'flex'; }
         function closeOTPModal() { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input').value = ''; }
         function verifyOTP() { if(document.getElementById('otp-input').value.length < 4) return; document.getElementById('otp-input-area').style.display = 'none'; document.getElementById('payment-loader').style.display = 'block'; setTimeout(() => { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input-area').style.display = 'block'; document.getElementById('payment-loader').style.display = 'none'; document.getElementById('otp-input').value = ''; processPayment(); }, 1500); }
