@@ -341,36 +341,35 @@
         async function goToAdmin() {
             await pullData(); 
             const tbody = document.getElementById('admin-table-body'); 
-            if (!tbody) return; // Prevent crash if table isn't found
+            if (!tbody) return; 
             tbody.innerHTML = '';
         
             db.forEach(student => {
                 let statusHtml = '<span class="status-pending">Pending</span>'; 
                 let lockBtn = ''; 
                 
+                // Use '||' to provide a fallback if data is null/undefined
                 if (student.booked) {
                     if (student.adminLocked) { 
                         statusHtml = '<span class="status-booked" style="color: #dc3545;">Locked (Admin Override)</span>'; 
-                    } 
-                    else 
-                    { 
+                    } else { 
                         statusHtml = '<span class="status-booked">Paid & Booked (Waitlist Open)</span>'; 
                         lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin: 0; color: white; border: none; margin-left: 5px;" onclick="forceLockBed('${student.id}')" title="Permanently Lock"><i class="fas fa-lock"></i></button>`; 
                     }
                 } else if (student.isWaitlisted) { 
                     statusHtml = `<span class="status-waiting">Queue: Wait for ${student.waitRoom || '-'}-${student.waitBed || '-'}</span>`; 
                 }
-            
+        
                 const actionBtn = `<div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px; margin: 0;" onclick="openAdminModal('${student.id}')">Edit</button>` + lockBtn + `</div>`;
                 
                 tbody.innerHTML += `<tr>
-                    <td>${student.id}</td>
-                    <td>${student.name}</td>
-                    <td>${student.course}</td>
-                    <td><code style="color: #a31d33; font-weight: bold;">${student.pass}</code></td>
+                    <td>${student.id || '-'}</td>
+                    <td>${student.name || 'Unknown'}</td>
+                    <td>${student.course || '-'}</td>
+                    <td><code style="color: #a31d33; font-weight: bold;">${student.pass || '-'}</code></td>
                     <td>${statusHtml}</td>
-                    <td>${student.room}</td>
-                    <td>${student.bed}</td>
+                    <td>${student.room || '-'}</td>
+                    <td>${student.bed || '-'}</td>
                     <td>${actionBtn}</td>
                 </tr>`;
             });
