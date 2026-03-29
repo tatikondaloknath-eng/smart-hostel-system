@@ -71,7 +71,6 @@ def home():
 @app.route('/api/sync', methods=['GET'])
 def pull_data():
     conn = get_db_connection()
-    # RealDictCursor makes the result look like a Python Dictionary
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     cursor.execute("SELECT * FROM students")
@@ -88,7 +87,15 @@ def pull_data():
 
     cursor.execute("SELECT queue_json FROM queue_state WHERE id='1'")
     queue_row = cursor.fetchone()
-    queue_data = json.loads(queue_row["queue_json"]) if queue_row else {}
+    
+    # SAFE PARSING: Ensure we get a valid object back even if the DB is fresh
+    if queue_row and queue_row["queue_json"]:
+        try:
+            queue_data = json.loads(queue_row["queue_json"])
+        except:
+            queue_data = {}
+    else:
+        queue_data = {}
     
     cursor.close()
     conn.close()
