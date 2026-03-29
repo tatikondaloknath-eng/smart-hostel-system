@@ -348,25 +348,24 @@
                 let statusHtml = '<span class="status-pending">Pending</span>'; 
                 let lockBtn = ''; 
                 
-                // Use '||' to provide a fallback if data is null/undefined
                 if (student.booked) {
                     if (student.adminLocked) { 
-                        statusHtml = '<span class="status-booked" style="color: #dc3545;">Locked (Admin Override)</span>'; 
+                        statusHtml = '<span class="status-booked" style="color: #dc3545;">Locked (Admin)</span>'; 
                     } else { 
-                        statusHtml = '<span class="status-booked">Paid & Booked (Waitlist Open)</span>'; 
-                        lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin: 0; color: white; border: none; margin-left: 5px;" onclick="forceLockBed('${student.id}')" title="Permanently Lock"><i class="fas fa-lock"></i></button>`; 
+                        statusHtml = '<span class="status-booked">Paid & Booked</span>'; 
+                        lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin-left: 5px;" onclick="forceLockBed('${student.id}')"><i class="fas fa-lock"></i></button>`; 
                     }
                 } else if (student.isWaitlisted) { 
-                    statusHtml = `<span class="status-waiting">Queue: Wait for ${student.waitRoom || '-'}-${student.waitBed || '-'}</span>`; 
+                    statusHtml = `<span class="status-waiting">Wait for ${student.waitRoom || '-'}-${student.waitBed || '-'}</span>`; 
                 }
         
-                const actionBtn = `<div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px; margin: 0;" onclick="openAdminModal('${student.id}')">Edit</button>` + lockBtn + `</div>`;
+                const actionBtn = `<div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="openAdminModal('${student.id}')">Edit</button>` + lockBtn + `</div>`;
                 
                 tbody.innerHTML += `<tr>
                     <td>${student.id || '-'}</td>
                     <td>${student.name || 'Unknown'}</td>
                     <td>${student.course || '-'}</td>
-                    <td><code style="color: #a31d33; font-weight: bold;">${student.pass || '-'}</code></td>
+                    <td><code style="color: #a31d33;">${student.pass || '-'}</code></td>
                     <td>${statusHtml}</td>
                     <td>${student.room || '-'}</td>
                     <td>${student.bed || '-'}</td>
@@ -375,7 +374,6 @@
             });
             goToView('view-admin');
         }
-
         async function forceLockBed(studentId) { if(confirm("Manually lock this bed? This removes the 1-day timer and closes the waiting list.")) { const index = db.findIndex(s => s.id === studentId); db[index].adminLocked = true; await pushData(); await goToAdmin(); alert("Bed successfully locked!"); } }
         function openAdminModal(studentId) { editingStudentId = studentId; const student = db.find(s => s.id === studentId); document.getElementById('edit-student-name').innerText = student.name + " (" + student.id + ")"; document.getElementById('edit-pass-input').value = student.pass; document.getElementById('edit-room-input').value = student.room !== "-" ? student.room : ""; document.getElementById('edit-bed-input').value = student.bed !== "-" ? student.bed : "1"; document.getElementById('admin-edit-modal').style.display = 'flex'; }
         function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
