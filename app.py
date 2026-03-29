@@ -56,7 +56,7 @@ def pull_data():
     
     db_list = []
     for r in rows:
-        # We manually map lowercase DB keys to the keys used in your JS
+        # Manually mapping lowercase DB fields to the JS names
         db_list.append({
             "id": r["id"], 
             "name": r["name"], 
@@ -65,7 +65,7 @@ def pull_data():
             "booked": bool(r["booked"]), 
             "room": r["room"], 
             "bed": r["bed"],
-            "bookingTime": r["bookingtime"], # Matches JS student.bookingTime
+            "bookingTime": r["bookingtime"], # MUST be lowercase 'bookingtime' here
             "isWaitlisted": bool(r["iswaitlisted"]), 
             "waitRoom": r["waitroom"], 
             "waitBed": r["waitbed"], 
