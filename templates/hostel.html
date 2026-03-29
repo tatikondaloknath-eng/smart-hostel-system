@@ -285,14 +285,15 @@
             document.getElementById('pay-mobile').value = ''; 
             document.getElementById('card-name').value = ''; 
             document.getElementById('card-num').value = ''; 
-            document.getElementById('card-cvv').value = ''; 
-            const amountElement = document.querySelector('.payment-box strong[style*="color: #28a745;"]');
+            document.getElementById('card-cvv').value = '';
+            const amountDisplay = document.getElementById('pay-amount');
             if (isJoiningWaitlist) {
-                amountElement.innerText = "₹500";
+                amountDisplay.innerText = "₹500";
             } else {
-                amountElement.innerText = "₹60,000";
+                amountDisplay.innerText = "₹60,000";
             }
-            goToView('view-payment'); 
+
+            goToView('view-payment');
         }
         function validatePayment() { const mobile = document.getElementById('pay-mobile').value.trim(); if(mobile.length < 10) { alert("Security Alert: Enter 10-digit number."); return; } const maskedMobile = mobile.slice(-4); document.getElementById('otp-message').innerText = `An OTP has been sent to your registered mobile number ending in ****${maskedMobile}.`; document.getElementById('otp-modal').style.display = 'flex'; }
         function closeOTPModal() { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input').value = ''; }
