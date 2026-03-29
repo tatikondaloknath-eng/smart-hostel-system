@@ -84,39 +84,59 @@ def pull_data():
 def push_data():
     data = request.json
     db_list = data.get("db", [])
-    queue_data = data.get("queue", {}) # This is our dictionary of lists
+    queue_data = data.get("queue", {})
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 1. Update Student Profiles
-    for s in db_list:
-        cursor.execute("SELECT id FROM students WHERE id=%s", (s["id"],))
-        if cursor.fetchone():
-            cursor.execute("""
-                UPDATE students SET
-                name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, bookingTime=%s,
-                isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s
-                WHERE id=%s
-            """, (s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"],
-                  s["bookingTime"] if s["bookingTime"] else 0, int(s["isWaitlisted"]),
-                  s["waitRoom"], s["waitBed"], int(s["adminLocked"]), s["id"]))
-        else:
-            cursor.execute("""
-                INSERT INTO students VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"],
-                  s["bookingTime"] if s["bookingTime"] else 0, int(s["isWaitlisted"]),
-                  s["waitRoom"], s["waitBed"], int(s["adminLocked"])))
+    try:
+        # 1. Update Student Profiles
+        for s in db_list:
+            # Check if student exists
+            cursor.execute("SELECT id FROM students WHERE id=%s", (s["id"],))
+            exists = cursor.fetchone()
+            
+            # Prepare values - explicitly convert to int/bool for Postgres
+            vals = (
+                s["name"], 
+                s["course"], 
+                s["pass"], 
+                1 if s.get("booked") else 0, 
+                s["room"], 
+                s["bed"], 
+                int(s["bookingTime"]) if s.get("bookingTime") else 0,
+                1 if s.get("isWaitlisted") else 0, 
+                s["waitRoom"], 
+                s["waitBed"], 
+                1 if s.get("adminLocked") else 0
+            )
 
-    # 2. UPDATE THE QUEUE STATE (The most important part)
-    # We convert the Python dictionary (queue_data) into a JSON string
-    queue_json_str = json.dumps(queue_data)
-    cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (queue_json_str,))
+            if exists:
+                cursor.execute("""
+                    UPDATE students SET
+                    name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, bookingTime=%s,
+                    isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s
+                    WHERE id=%s
+                """, vals + (s["id"],))
+            else:
+                cursor.execute("""
+                    INSERT INTO students (id, name, course, pass, booked, room, bed, bookingTime, isWaitlisted, waitRoom, waitBed, adminLocked)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (s["id"],) + vals)
 
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return jsonify({"success": True})
+        # 2. Update Queue State
+        queue_json_str = json.dumps(queue_data)
+        cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (queue_json_str,))
+
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        print(f"Database Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
