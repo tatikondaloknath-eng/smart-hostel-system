@@ -341,24 +341,26 @@
         async function goToAdmin() {
             await pullData(); 
             const tbody = document.getElementById('admin-table-body'); 
+            if (!tbody) return; // Prevent crash if table isn't found
             tbody.innerHTML = '';
         
             db.forEach(student => {
                 let statusHtml = '<span class="status-pending">Pending</span>'; 
                 let lockBtn = ''; 
                 
-                // Ensure properties match the casing sent by your app.py pull_data function
                 if (student.booked) {
                     if (student.adminLocked) { 
                         statusHtml = '<span class="status-booked" style="color: #dc3545;">Locked (Admin Override)</span>'; 
-                    } else { 
+                    } 
+                    else 
+                    { 
                         statusHtml = '<span class="status-booked">Paid & Booked (Waitlist Open)</span>'; 
                         lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin: 0; color: white; border: none; margin-left: 5px;" onclick="forceLockBed('${student.id}')" title="Permanently Lock"><i class="fas fa-lock"></i></button>`; 
                     }
                 } else if (student.isWaitlisted) { 
-                    statusHtml = `<span class="status-waiting">Queue: Wait for ${student.waitRoom}-${student.waitBed}</span>`; 
+                    statusHtml = `<span class="status-waiting">Queue: Wait for ${student.waitRoom || '-'}-${student.waitBed || '-'}</span>`; 
                 }
-        
+            
                 const actionBtn = `<div style="display:flex;"><button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px; margin: 0;" onclick="openAdminModal('${student.id}')">Edit</button>` + lockBtn + `</div>`;
                 
                 tbody.innerHTML += `<tr>
