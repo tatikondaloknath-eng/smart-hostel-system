@@ -84,24 +84,35 @@ def pull_data():
 def push_data():
     data = request.json
     db_list = data.get("db", [])
-    queue_data = data.get("queue", {})
+    queue_data = data.get("queue", {}) # This is our dictionary of lists
+
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # 1. Update Student Profiles
     for s in db_list:
         cursor.execute("SELECT id FROM students WHERE id=%s", (s["id"],))
         if cursor.fetchone():
             cursor.execute("""
-                UPDATE students SET name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, 
-                bookingTime=%s, isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s WHERE id=%s
+                UPDATE students SET
+                name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, bookingTime=%s,
+                isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s
+                WHERE id=%s
             """, (s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"],
                   s["bookingTime"] if s["bookingTime"] else 0, int(s["isWaitlisted"]),
                   s["waitRoom"], s["waitBed"], int(s["adminLocked"]), s["id"]))
         else:
-            cursor.execute("INSERT INTO students VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", 
-                (s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"],
-                 s["bookingTime"] if s["bookingTime"] else 0, int(s["isWaitlisted"]),
-                 s["waitRoom"], s["waitBed"], int(s["adminLocked"])))
-    cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (json.dumps(queue_data),))
+            cursor.execute("""
+                INSERT INTO students VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"],
+                  s["bookingTime"] if s["bookingTime"] else 0, int(s["isWaitlisted"]),
+                  s["waitRoom"], s["waitBed"], int(s["adminLocked"])))
+
+    # 2. UPDATE THE QUEUE STATE (The most important part)
+    # We convert the Python dictionary (queue_data) into a JSON string
+    queue_json_str = json.dumps(queue_data)
+    cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (queue_json_str,))
+
     conn.commit()
     cursor.close()
     conn.close()
