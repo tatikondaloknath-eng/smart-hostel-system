@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # 1. DATABASE CONNECTION
 # Use the Environment Variable from Render; falls back to your string for local testing
-DATABASE_URL = os.environ.get('DATABASE_URL', 'your_copied_postgresql_url_here')
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://hostel_db_9c2w_user:iBKJ0L9rcWSiO4ZHtByVAI7YFpYL7683@dpg-d748onua2pns73ahh0m0-a/hostel_db_9c2w')
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL)
