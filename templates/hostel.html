@@ -307,17 +307,22 @@
                     currentUser.waitRoom = currentRoom; 
                     currentUser.waitBed = selectedBed; 
                     db[index] = currentUser;
-        
+                
                     const queueKey = `${currentRoom}-${selectedBed}`; 
-                    if (!waitlistQueue[queueKey]) { waitlistQueue[queueKey] = []; }
                     
-                    if (!waitlistQueue[queueKey].includes(currentUser.id)) {
-                        waitlistQueue[queueKey].push(currentUser.id); 
+                    // Check if a queue already exists for this bed
+                    if (!waitlistQueue[queueKey]) {
+                        waitlistQueue[queueKey] = []; // Create a new empty list if none exists
                     }
-        
+                    
+                    // Check if the student is already in the list (prevents duplicates)
+                    if (!waitlistQueue[queueKey].includes(currentUser.id)) {
+                        waitlistQueue[queueKey].push(currentUser.id); // Add them to the end of the line
+                    }
+                
                     document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; 
                     document.getElementById('receipt-wait-msg').style.display = 'block';
-                } else {
+                    } else {
                     currentUser.booked = true; 
                     currentUser.room = currentRoom; 
                     currentUser.bed = selectedBed; 
