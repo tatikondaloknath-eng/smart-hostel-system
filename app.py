@@ -79,10 +79,18 @@ def pull_data():
     db_list = []
     for r in rows:
         db_list.append({
-            "id": r["id"], "name": r["name"], "course": r["course"], "pass": r["pass"],
-            "booked": bool(r["booked"]), "room": r["room"], "bed": r["bed"],
-            "bookingTime": r["bookingtime"], "isWaitlisted": bool(r["iswaitlisted"]),
-            "waitRoom": r["waitroom"], "waitBed": r["waitbed"], "adminLocked": bool(r["adminlocked"])
+            "id": r["id"], 
+            "name": r["name"], 
+            "course": r["course"], 
+            "pass": r["pass"],
+            "booked": bool(r["booked"]), 
+            "room": r["room"], 
+            "bed": r["bed"],
+            "bookingTime": r["bookingtime"], # Matches JS student.bookingTime
+            "isWaitlisted": bool(r["iswaitlisted"]), 
+            "waitRoom": r["waitroom"], 
+            "waitBed": r["waitbed"], 
+            "adminLocked": bool(r["adminlocked"])
         })
 
     cursor.execute("SELECT queue_json FROM queue_state WHERE id='1'")
