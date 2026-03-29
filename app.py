@@ -1,25 +1,46 @@
 from flask import Flask, render_template, request, jsonify
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import json
+import os
 
 app = Flask(__name__)
 
-# =====================================================================
-# 1. DATABASE INITIALIZATION (Permanent SQL Storage)
-# =====================================================================
+# 1. DATABASE CONNECTION
+# Use the Environment Variable from Render; falls back to your string for local testing
+DATABASE_URL = os.environ.get('DATABASE_URL', 'your_copied_postgresql_url_here')
+
+def get_db_connection():
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
+
+# 2. DATABASE INITIALIZATION
 def init_db():
-    conn = sqlite3.connect('smart_hostel.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Create Students Table (PostgreSQL syntax)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS students (
-            id TEXT PRIMARY KEY, name TEXT, course TEXT, pass TEXT,
-            booked INTEGER, room TEXT, bed TEXT, bookingTime INTEGER,
-            isWaitlisted INTEGER, waitRoom TEXT, waitBed TEXT, adminLocked INTEGER
+            id TEXT PRIMARY KEY, 
+            name TEXT, 
+            course TEXT, 
+            pass TEXT,
+            booked INTEGER, 
+            room TEXT, 
+            bed TEXT, 
+            bookingTime BIGINT,
+            isWaitlisted INTEGER, 
+            waitRoom TEXT, 
+            waitBed TEXT, 
+            adminLocked INTEGER
         )
     ''')
+    
+    # Create Queue Table
     cursor.execute('''CREATE TABLE IF NOT EXISTS queue_state (id TEXT PRIMARY KEY, queue_json TEXT)''')
 
+    # Check if table is empty to insert defaults
     cursor.execute("SELECT COUNT(*) FROM students")
     if cursor.fetchone()[0] == 0:
         default_students = [
@@ -30,40 +51,46 @@ def init_db():
             ("AMRITA2005", "Arjun Patel", "CSE", "2005", 0, "-", "-", 0, 0, "-", "-", 0),
             ("AMRITA2006", "Avni Reddy", "AI", "2006", 0, "-", "-", 0, 0, "-", "-", 0)
         ]
-        cursor.executemany("INSERT INTO students VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", default_students)
+        for s in default_students:
+            cursor.execute("INSERT INTO students VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", s)
+        
         cursor.execute("INSERT INTO queue_state VALUES ('1', '{}')")
 
     conn.commit()
+    cursor.close()
     conn.close()
 
+# Initialize DB on startup
 init_db()
 
 @app.route('/')
 def home():
     return render_template('hostel.html')
 
-# =====================================================================
-# 2. API: PULL & PUSH DATA
-# =====================================================================
+# 3. API: PULL & PUSH DATA
 @app.route('/api/sync', methods=['GET'])
 def pull_data():
-    conn = sqlite3.connect('smart_hostel.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    conn = get_db_connection()
+    # RealDictCursor makes the result look like a Python Dictionary
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     cursor.execute("SELECT * FROM students")
     rows = cursor.fetchall()
+    
     db_list = []
     for r in rows:
         db_list.append({
             "id": r["id"], "name": r["name"], "course": r["course"], "pass": r["pass"],
             "booked": bool(r["booked"]), "room": r["room"], "bed": r["bed"],
-            "bookingTime": r["bookingTime"], "isWaitlisted": bool(r["isWaitlisted"]),
-            "waitRoom": r["waitRoom"], "waitBed": r["waitBed"], "adminLocked": bool(r["adminLocked"])
+            "bookingTime": r["bookingtime"], "isWaitlisted": bool(r["iswaitlisted"]),
+            "waitRoom": r["waitroom"], "waitBed": r["waitbed"], "adminLocked": bool(r["adminlocked"])
         })
 
     cursor.execute("SELECT queue_json FROM queue_state WHERE id='1'")
-    queue_data = json.loads(cursor.fetchone()["queue_json"])
+    queue_row = cursor.fetchone()
+    queue_data = json.loads(queue_row["queue_json"]) if queue_row else {}
+    
+    cursor.close()
     conn.close()
     return jsonify({"db": db_list, "queue": queue_data})
 
@@ -73,34 +100,36 @@ def push_data():
     db_list = data.get("db", [])
     queue_data = data.get("queue", {})
 
-    conn = sqlite3.connect('smart_hostel.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     for s in db_list:
-        cursor.execute("SELECT id FROM students WHERE id=?", (s["id"],))
+        cursor.execute("SELECT id FROM students WHERE id=%s", (s["id"],))
         if cursor.fetchone():
             cursor.execute("""
                 UPDATE students SET
-                name=?, course=?, pass=?, booked=?, room=?, bed=?, bookingTime=?,
-                isWaitlisted=?, waitRoom=?, waitBed=?, adminLocked=?
-                WHERE id=?
+                name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, bookingTime=%s,
+                isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s
+                WHERE id=%s
             """, (s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"],
                   s["bookingTime"] if s["bookingTime"] else 0, int(s["isWaitlisted"]),
                   s["waitRoom"], s["waitBed"], int(s["adminLocked"]), s["id"]))
         else:
             cursor.execute("""
-                INSERT INTO students VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                INSERT INTO students VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"],
                   s["bookingTime"] if s["bookingTime"] else 0, int(s["isWaitlisted"]),
                   s["waitRoom"], s["waitBed"], int(s["adminLocked"])))
 
     queue_json_str = json.dumps(queue_data)
-    cursor.execute("UPDATE queue_state SET queue_json=? WHERE id='1'", (queue_json_str,))
+    cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (queue_json_str,))
 
     conn.commit()
+    cursor.close()
     conn.close()
     return jsonify({"success": True})
-    # 0.0.0.0 guarantees it works on any Wi-Fi router you connect to!
+
 if __name__ == '__main__':
-    app.run()
-app.run(host='0.0.0.0', port=10000)
+    # Render uses port 10000 by default
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
