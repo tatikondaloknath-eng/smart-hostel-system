@@ -56,7 +56,7 @@ def pull_data():
     
     db_list = []
     for r in rows:
-        # Manually mapping lowercase DB fields to the JS names
+        # We manually map lowercase PostgreSQL keys to your JS keys
         db_list.append({
             "id": r["id"], 
             "name": r["name"], 
@@ -65,7 +65,7 @@ def pull_data():
             "booked": bool(r["booked"]), 
             "room": r["room"], 
             "bed": r["bed"],
-            "bookingTime": r["bookingtime"], # MUST be lowercase 'bookingtime' here
+            "bookingTime": r["bookingtime"], # JavaScript expects CamelCase
             "isWaitlisted": bool(r["iswaitlisted"]), 
             "waitRoom": r["waitroom"], 
             "waitBed": r["waitbed"], 
