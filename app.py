@@ -54,15 +54,21 @@ def pull_data():
     cursor.execute("SELECT * FROM students")
     rows = cursor.fetchall()
     
-    # CRITICAL: Convert lowercase PostgreSQL keys to the CamelCase keys used in your HTML/JS
     db_list = []
     for r in rows:
+        # We manually map lowercase DB keys to the keys used in your JS
         db_list.append({
-            "id": r["id"], "name": r["name"], "course": r["course"], "pass": r["pass"],
-            "booked": bool(r["booked"]), "room": r["room"], "bed": r["bed"],
-            "bookingTime": r["bookingtime"], 
-            "isWaitlisted": bool(r["iswaitlisted"]),
-            "waitRoom": r["waitroom"], "waitBed": r["waitbed"], 
+            "id": r["id"], 
+            "name": r["name"], 
+            "course": r["course"], 
+            "pass": r["pass"],
+            "booked": bool(r["booked"]), 
+            "room": r["room"], 
+            "bed": r["bed"],
+            "bookingTime": r["bookingtime"], # Matches JS student.bookingTime
+            "isWaitlisted": bool(r["iswaitlisted"]), 
+            "waitRoom": r["waitroom"], 
+            "waitBed": r["waitbed"], 
             "adminLocked": bool(r["adminlocked"])
         })
 
