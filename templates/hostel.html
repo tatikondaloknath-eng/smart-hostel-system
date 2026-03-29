@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
-        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 800px; margin: auto; box-sizing: border-box; }
+        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 900px; margin: auto; box-sizing: border-box; }
         .active-page { display: block; }
         .title { color: #a31d33; font-size: 26px; font-weight: bold; margin-bottom: 20px; margin-top: 30px; text-align: center; }
         .btn { padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; background-color: #a31d33; color: white; margin-top: 10px; }
@@ -302,10 +302,36 @@
             updateOccupancySummary();
             const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
             db.forEach(s => {
-                const statusHtml = s.adminLocked ? '<span style="color:red">Locked</span>' : (s.isWaitlisted ? '<span style="color:orange">Waitlist</span>' : (s.booked ? '<span style="color:green">Paid</span>' : 'Pending'));
+                let statusHtml = '<span class="status-pending">Pending</span>'; 
+                let lockBtn = ''; 
+                
+                if (s.adminLocked) { 
+                    statusHtml = '<span style="color:red; font-weight:bold;">Locked (Admin)</span>'; 
+                } else if (s.isWaitlisted) { 
+                    statusHtml = `<span style="color:orange; font-weight:bold;">Waitlist (${s.waitRoom}-${s.waitBed})</span>`; 
+                } else if (s.booked) {
+                    statusHtml = '<span style="color:green; font-weight:bold;">Paid & Booked</span>'; 
+                    lockBtn = `<button class="btn" style="background-color: #dc3545; padding: 6px 12px; font-size: 13px; margin-left: 5px;" onclick="forceLockBed('${s.id}')"><i class="fas fa-lock"></i></button>`; 
+                }
+
                 const r = s.booked ? s.room : (s.isWaitlisted ? s.waitRoom : '-');
                 const b = s.booked ? s.bed : (s.isWaitlisted ? s.waitBed : '-');
-                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${s.pass}</td><td>${statusHtml}</td><td>${r}</td><td>${b}</td><td><button class="btn" style="padding:5px 10px; font-size:12px;" onclick="openAdminModal('${s.id}')">Edit</button></td></tr>`;
+                
+                tbody.innerHTML += `<tr>
+                    <td>${s.id}</td>
+                    <td>${s.name}</td>
+                    <td>${s.course}</td>
+                    <td>${s.pass}</td>
+                    <td>${statusHtml}</td>
+                    <td>${r}</td>
+                    <td>${b}</td>
+                    <td>
+                        <div style="display:flex;">
+                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="openAdminModal('${s.id}')">Edit</button>
+                            ${lockBtn}
+                        </div>
+                    </td>
+                </tr>`;
             });
             goToView('view-admin');
         }
@@ -313,7 +339,8 @@
         function updateOccupancySummary() {
             const tbody = document.getElementById('occupancy-body'); tbody.innerHTML = '';
             Object.keys(floorAllocation).forEach(course => {
-                const total = floorAllocation[course].length * 8 * 4;
+                const floors = floorAllocation[course];
+                const total = floors.length * 8 * 4;
                 const filled = db.filter(s => s.course === course && s.booked).length;
                 const waiting = db.filter(s => s.course === course && s.isWaitlisted).length;
                 tbody.innerHTML += `<tr><td>${course}</td><td>${total}</td><td>${filled}</td><td>${waiting}</td><td>${total-filled}</td></tr>`;
@@ -337,6 +364,8 @@
 
         function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
         
+        async function forceLockBed(id) { if(confirm("Lock bed?")) { const idx = db.findIndex(s => s.id === id); db[idx].adminLocked = true; await pushData(); await goToAdmin(); } }
+
         async function saveAdminChanges() { 
             const idx = db.findIndex(s => s.id === editingStudentId); 
             db[idx].pass = document.getElementById('edit-pass-input').value || db[idx].pass;
