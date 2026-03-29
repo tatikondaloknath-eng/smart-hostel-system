@@ -300,17 +300,50 @@
         function verifyOTP() { if(document.getElementById('otp-input').value.length < 4) return; document.getElementById('otp-input-area').style.display = 'none'; document.getElementById('payment-loader').style.display = 'block'; setTimeout(() => { document.getElementById('otp-modal').style.display = 'none'; document.getElementById('otp-input-area').style.display = 'block'; document.getElementById('payment-loader').style.display = 'none'; document.getElementById('otp-input').value = ''; processPayment(); }, 1500); }
 
         async function processPayment() {
-            const index = db.findIndex(s => s.id === currentUser.id); const txnId = "TXN" + Math.floor(Math.random() * 900000 + 100000);
+            const index = db.findIndex(s => s.id === currentUser.id); 
+            const txnId = "TXN" + Math.floor(Math.random() * 900000 + 100000);
             if (isJoiningWaitlist) {
-                currentUser.isWaitlisted = true; currentUser.waitRoom = currentRoom; currentUser.waitBed = selectedBed; db[index] = currentUser;
-                const queueKey = `${currentRoom}-${selectedBed}`; if (!waitlistQueue[queueKey]) waitlistQueue[queueKey] = []; waitlistQueue[queueKey].push(currentUser.id); 
-                document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; document.getElementById('receipt-wait-msg').style.display = 'block';
+                // Update student state
+                currentUser.isWaitlisted = true; 
+                currentUser.waitRoom = currentRoom; 
+                currentUser.waitBed = selectedBed; 
+                db[index] = currentUser;
+        
+                // MANAGE THE QUEUE
+                const queueKey = `${currentRoom}-${selectedBed}`; 
+                
+                // Step 1: Check if this specific room-bed queue already exists
+                if (!waitlistQueue[queueKey]) {
+                    waitlistQueue[queueKey] = []; // Create new list if empty
+                }
+                
+                // Step 2: Add student only if they aren't already in this specific queue
+                if (!waitlistQueue[queueKey].includes(currentUser.id)) {
+                    waitlistQueue[queueKey].push(currentUser.id); 
+                }
+        
+                document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; 
+                document.getElementById('receipt-wait-msg').style.display = 'block';
             } else {
-                currentUser.booked = true; currentUser.room = currentRoom; currentUser.bed = selectedBed; currentUser.bookingTime = Date.now(); currentUser.adminLocked = false; db[index] = currentUser;
-                document.getElementById('receipt-title').innerText = "Payment Successful!"; document.getElementById('receipt-wait-msg').style.display = 'none';
+                // Standard booking logic
+                currentUser.booked = true; 
+                currentUser.room = currentRoom; 
+                currentUser.bed = selectedBed; 
+                currentUser.bookingTime = Date.now(); 
+                currentUser.adminLocked = false; 
+                db[index] = currentUser;
+                document.getElementById('receipt-title').innerText = "Payment Successful!"; 
+                document.getElementById('receipt-wait-msg').style.display = 'none';
             }
+
+            // Push the updated database and queue to the server
             await pushData(); 
-            document.getElementById('receipt-txn').innerText = txnId; document.getElementById('receipt-name').innerText = currentUser.name; document.getElementById('receipt-room').innerText = currentRoom; document.getElementById('receipt-bed').innerText = selectedBed; goToView('view-receipt');
+        
+            document.getElementById('receipt-txn').innerText = txnId; 
+            document.getElementById('receipt-name').innerText = currentUser.name; 
+            document.getElementById('receipt-room').innerText = currentRoom; 
+            document.getElementById('receipt-bed').innerText = selectedBed; 
+            goToView('view-receipt');
         }
 
         async function goToAdmin() {
