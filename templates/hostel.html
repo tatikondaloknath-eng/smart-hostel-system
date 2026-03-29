@@ -298,45 +298,55 @@
 
         // FIX 1: Support multi-person waitlist
         async function processPayment() {
-            const index = db.findIndex(s => s.id === currentUser.id); 
-            const txnId = "TXN" + Math.floor(Math.random() * 900000 + 100000);
+            try {
+                const index = db.findIndex(s => s.id === currentUser.id); 
+                const txnId = "TXN" + Math.floor(Math.random() * 900000 + 100000);
         
-            if (isJoiningWaitlist) {
-                currentUser.isWaitlisted = true; 
-                currentUser.waitRoom = currentRoom; 
-                currentUser.waitBed = selectedBed; 
-                db[index] = currentUser;
+                if (isJoiningWaitlist) {
+                    currentUser.isWaitlisted = true; 
+                    currentUser.waitRoom = currentRoom; 
+                    currentUser.waitBed = selectedBed; 
+                    db[index] = currentUser;
         
-                const queueKey = `${currentRoom}-${selectedBed}`; 
-                if (!waitlistQueue[queueKey]) { waitlistQueue[queueKey] = []; }
-                
-                // Push the student to the end of the existing list
-                if (!waitlistQueue[queueKey].includes(currentUser.id)) {
-                    waitlistQueue[queueKey].push(currentUser.id); 
+                    const queueKey = `${currentRoom}-${selectedBed}`; 
+                    if (!waitlistQueue[queueKey]) { waitlistQueue[queueKey] = []; }
+                    
+                    if (!waitlistQueue[queueKey].includes(currentUser.id)) {
+                        waitlistQueue[queueKey].push(currentUser.id); 
+                    }
+        
+                    document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; 
+                    document.getElementById('receipt-wait-msg').style.display = 'block';
+                } else {
+                    currentUser.booked = true; 
+                    currentUser.room = currentRoom; 
+                    currentUser.bed = selectedBed; 
+                    // FIX: Ensure this matches the BIGINT type in your DB
+                    currentUser.bookingTime = Date.now(); 
+                    currentUser.adminLocked = false; 
+                    db[index] = currentUser;
+                    
+                    document.getElementById('receipt-title').innerText = "Payment Successful!"; 
+                    document.getElementById('receipt-wait-msg').style.display = 'none';
                 }
         
-                document.getElementById('receipt-title').innerText = "Waitlist Joined Successfully!"; 
-                document.getElementById('receipt-wait-msg').style.display = 'block';
-            } else {
-                currentUser.booked = true; 
-                currentUser.room = currentRoom; 
-                currentUser.bed = selectedBed; 
-                currentUser.bookingTime = Date.now(); 
-                currentUser.adminLocked = false; 
-                db[index] = currentUser;
-                document.getElementById('receipt-title').innerText = "Payment Successful!"; 
-                document.getElementById('receipt-wait-msg').style.display = 'none';
-            }
+                // Send data to Render/PostgreSQL
+                await pushData(); 
         
-            await pushData(); 
-            document.getElementById('receipt-txn').innerText = txnId; 
-            document.getElementById('receipt-name').innerText = currentUser.name; 
-            document.getElementById('receipt-room').innerText = currentRoom; 
-            document.getElementById('receipt-bed').innerText = selectedBed; 
-            goToView('view-receipt');
+                // Fill receipt details
+                document.getElementById('receipt-txn').innerText = txnId; 
+                document.getElementById('receipt-name').innerText = currentUser.name; 
+                document.getElementById('receipt-room').innerText = currentRoom; 
+                document.getElementById('receipt-bed').innerText = selectedBed; 
+        
+                // Switch to the receipt page
+                goToView('view-receipt');
+        
+            } catch (error) {
+                console.error("Payment Processing Error:", error);
+                alert("Payment went through, but there was an error saving your receipt. Please refresh the page.");
+            }
         }
-
-
 
         async function goToAdmin() {
             await pullData(); 
