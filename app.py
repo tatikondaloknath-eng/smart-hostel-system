@@ -1,34 +1,63 @@
 from flask import Flask, render_template, request, jsonify
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import pymysql
 import json
 import os
 
 app = Flask(__name__)
 
-# Render Database URL
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://hostel_db_9c2w_user:iBKJ0L9rcWSiO4ZHtByVAI7YFpYL7683@dpg-d748onua2pns73ahh0m0-a/hostel_db_9c2w')
+# REPLACE this with your Aiven Service URI
+# Format: mysql://avnadmin:password@host:port/defaultdb
+MYSQL_URI = os.environ.get('DATABASE_URL', 'your_aiven_mysql_uri_here')
 
 def get_db_connection():
-    return psycopg2.connect(DATABASE_URL)
+    # Parsing the URI manually if needed, or using from_url style logic
+    # Aiven URIs are standard; we use pymysql to connect
+    import urllib.parse as urlparse
+    url = urlparse.urlparse(MYSQL_URI)
+    
+    return pymysql.connect(
+        host=url.hostname,
+        user=url.username,
+        password=url.password,
+        port=url.port,
+        database=url.path[1:],
+        cursorclass=pymysql.cursors.DictCursor
+    )
 
 def init_db():
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS students (
-            id TEXT PRIMARY KEY, name TEXT, course TEXT, pass TEXT,
-            booked INTEGER, room TEXT, bed TEXT, bookingTime BIGINT,
-            isWaitlisted INTEGER, waitRoom TEXT, waitBed TEXT, adminLocked INTEGER
-        )
-    ''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS queue_state (id TEXT PRIMARY KEY, queue_json TEXT)''')
-    cursor.execute("SELECT COUNT(*) FROM queue_state")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute("INSERT INTO queue_state VALUES ('1', '{}')")
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        with conn.cursor() as cursor:
+            # MySQL uses BIGINT for timestamps and TEXT/VARCHAR for IDs
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS students (
+                    id VARCHAR(50) PRIMARY KEY, 
+                    name VARCHAR(100), 
+                    course VARCHAR(50), 
+                    pass VARCHAR(50),
+                    booked TINYINT(1), 
+                    room VARCHAR(20), 
+                    bed VARCHAR(20), 
+                    bookingTime BIGINT,
+                    isWaitlisted TINYINT(1), 
+                    waitRoom VARCHAR(20), 
+                    waitBed VARCHAR(20), 
+                    adminLocked TINYINT(1)
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS queue_state (
+                    id VARCHAR(10) PRIMARY KEY, 
+                    queue_json TEXT
+                )
+            ''')
+            
+            cursor.execute("SELECT COUNT(*) as count FROM queue_state")
+            if cursor.fetchone()['count'] == 0:
+                cursor.execute("INSERT INTO queue_state (id, queue_json) VALUES ('1', '{}')")
+        conn.commit()
+    finally:
+        conn.close()
 
 init_db()
 
@@ -39,24 +68,26 @@ def home():
 @app.route('/api/sync', methods=['GET'])
 def pull_data():
     conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cursor.execute("SELECT * FROM students")
-        rows = cursor.fetchall()
-        db_list = []
-        for r in rows:
-            db_list.append({
-                "id": r["id"], "name": r["name"], "course": r["course"], "pass": r["pass"],
-                "booked": bool(r["booked"]), "room": r["room"], "bed": r["bed"],
-                "bookingTime": r["bookingtime"], "isWaitlisted": bool(r["iswaitlisted"]),
-                "waitRoom": r["waitroom"], "waitBed": r["waitbed"], "adminLocked": bool(r["adminlocked"])
-            })
-        cursor.execute("SELECT queue_json FROM queue_state WHERE id='1'")
-        q_row = cursor.fetchone()
-        queue_data = json.loads(q_row["queue_json"]) if q_row and q_row["queue_json"] else {}
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM students")
+            rows = cursor.fetchall()
+            
+            db_list = []
+            for r in rows:
+                db_list.append({
+                    "id": r["id"], "name": r["name"], "course": r["course"], "pass": r["pass"],
+                    "booked": bool(r["booked"]), "room": r["room"], "bed": r["bed"],
+                    "bookingTime": r["bookingTime"], "isWaitlisted": bool(r["isWaitlisted"]),
+                    "waitRoom": r["waitRoom"], "waitBed": r["waitBed"], "adminLocked": bool(r["adminLocked"])
+                })
+
+            cursor.execute("SELECT queue_json FROM queue_state WHERE id='1'")
+            q_row = cursor.fetchone()
+            queue_data = json.loads(q_row["queue_json"]) if q_row else {}
+            
         return jsonify({"db": db_list, "queue": queue_data})
     finally:
-        cursor.close()
         conn.close()
 
 @app.route('/api/sync', methods=['POST'])
@@ -64,28 +95,37 @@ def push_data():
     data = request.json
     db_list = data.get("db", [])
     queue_data = data.get("queue", {})
+    
     conn = get_db_connection()
-    cursor = conn.cursor()
     try:
-        for s in db_list:
-            cursor.execute("SELECT id FROM students WHERE id=%s", (s["id"],))
-            vals = (s["name"], s["course"], s["pass"], 1 if s.get("booked") else 0, s["room"], s["bed"], 
-                    int(s["bookingTime"]) if s.get("bookingTime") else 0, 1 if s.get("isWaitlisted") else 0, 
-                    s["waitRoom"], s["waitBed"], 1 if s.get("adminLocked") else 0, s["id"])
-            if cursor.fetchone():
-                cursor.execute("UPDATE students SET name=%s,course=%s,pass=%s,booked=%s,room=%s,bed=%s,bookingTime=%s,isWaitlisted=%s,waitRoom=%s,waitBed=%s,adminLocked=%s WHERE id=%s", vals)
-            else:
-                cursor.execute("INSERT INTO students VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", vals)
-        cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (json.dumps(queue_data),))
+        with conn.cursor() as cursor:
+            for s in db_list:
+                # MySQL uses INSERT ... ON DUPLICATE KEY UPDATE for easy syncing
+                sql = """
+                    INSERT INTO students (id, name, course, pass, booked, room, bed, bookingTime, isWaitlisted, waitRoom, waitBed, adminLocked)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                    name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, bookingTime=%s, isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s
+                """
+                vals = (
+                    s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], 
+                    int(s["bookingTime"]) if s.get("bookingTime") else 0, int(s["isWaitlisted"]), 
+                    s["waitRoom"], s["waitBed"], int(s["adminLocked"]),
+                    # Values for the UPDATE part
+                    s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], 
+                    int(s["bookingTime"]) if s.get("bookingTime") else 0, int(s["isWaitlisted"]), 
+                    s["waitRoom"], s["waitBed"], int(s["adminLocked"])
+                )
+                cursor.execute(sql, vals)
+                
+            cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (json.dumps(queue_data),))
         conn.commit()
         return jsonify({"success": True})
     except Exception as e:
-        conn.rollback()
+        print(f"Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
