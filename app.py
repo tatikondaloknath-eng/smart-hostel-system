@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # REPLACE this with your Aiven Service URI
 # Format: mysql://avnadmin:password@host:port/defaultdb
-MYSQL_URI = os.environ.get('DATABASE_URL', 'your_aiven_mysql_uri_here')
+MYSQL_URI = os.environ.get('DATABASE_URL', 'your_aiven_mysql_uri_her')
 
 def get_db_connection():
     # Parsing the URI manually if needed, or using from_url style logic
