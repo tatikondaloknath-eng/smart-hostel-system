@@ -1,132 +1,203 @@
-from flask import Flask, render_template, request, jsonify
-import pymysql
-import json
-import os
-import urllib.parse as urlparse
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Hostel System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
+        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 1000px; margin: auto; box-sizing: border-box; position: relative; }
+        .active-page { display: block; }
+        .title { color: #a31d33; font-size: 26px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        .btn { padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; background-color: #a31d33; color: white; margin-top: 10px; }
+        .btn:hover { background-color: #8a182b; }
+        .btn-outline { background-color: white; color: #a31d33; border: 2px solid #a31d33; }
+        .btn-back { background: #6c757d; color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+        .header-buttons { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #4a4a4a;}
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px;}
+        .error-box { color: #a31d33; background: #fcebeb; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; text-align: center;}
+        
+        /* ORIGINAL RED TABLE STYLE */
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left; }
+        th { background-color: #a31d33; color: white; padding: 12px; }
+        td { border: 1px solid #ddd; padding: 10px; }
 
-app = Flask(__name__)
+        /* BED & FLOOR PLAN */
+        .floor-plan { width: 600px; height: 400px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; }
+        .bed { position: absolute; width: 80px; height: 130px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        .pillow { position: absolute; top: 10px; width: 50px; height: 25px; background: white; border: 1px solid #ccc; border-radius: 4px; }
+        .bed-available { border-color: #28a745; }
+        .bed-selected { border-color: #28a745; background: #d4edda; border-width: 3px; }
+        .bed-waiting { border-color: #fd7e14; background: #fff3cd; }
+        .bed-booked { border-color: #dc3545; background: #f8d7da; }
+        .pos-1 { top: 20px; left: 20px; } .pos-2 { top: 20px; right: 20px; } .pos-3 { bottom: 20px; left: 20px; } .pos-4 { bottom: 20px; right: 20px; }
 
-# --- DATABASE CONFIGURATION ---
-# Using the Service URI from your Aiven Console
-# If DATABASE_URL is set in Render Environment, it uses that. Otherwise, it uses this default.
-DEFAULT_URI = "mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED"
-MYSQL_URI = os.environ.get('DATABASE_URL', DEFAULT_URI)
+        .room-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
+        .room-tag { padding: 8px 12px; background: #eee; border-radius: 5px; cursor: pointer; font-weight: bold; border: 1px solid #ddd; }
+        .room-tag:hover { background: #a31d33; color: white; }
 
-def get_db_connection():
-    try:
-        url = urlparse.urlparse(MYSQL_URI)
-        return pymysql.connect(
-            host=url.hostname,
-            user=url.username,
-            password=url.password,
-            port=url.port,
-            database=url.path[1:],
-            cursorclass=pymysql.cursors.DictCursor,
-            autocommit=True,
-            ssl={'ssl': {}}  # Required for Aiven
-        )
-    except Exception as e:
-        print(f"Connection Error: {e}")
-        return None
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; }
+        .modal-content { background-color: white; padding: 30px; border-radius: 10px; width: 400px; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
+    </style>
+</head>
+<body>
 
-def init_db():
-    conn = get_db_connection()
-    if conn is None:
-        return
-    try:
-        with conn.cursor() as cursor:
-            # Create Students Table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS students (
-                    id VARCHAR(50) PRIMARY KEY, 
-                    name VARCHAR(100), 
-                    course VARCHAR(50), 
-                    pass VARCHAR(50),
-                    booked TINYINT(1), 
-                    room VARCHAR(20), 
-                    bed VARCHAR(20), 
-                    bookingTime BIGINT,
-                    isWaitlisted TINYINT(1), 
-                    waitRoom VARCHAR(20), 
-                    waitBed VARCHAR(20), 
-                    adminLocked TINYINT(1)
-                )
-            ''')
-            # Create Queue Table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS queue_state (
-                    id VARCHAR(10) PRIMARY KEY, 
-                    queue_json TEXT
-                )
-            ''')
-            cursor.execute("SELECT COUNT(*) as count FROM queue_state")
-            if cursor.fetchone()['count'] == 0:
-                cursor.execute("INSERT INTO queue_state (id, queue_json) VALUES ('1', '{}')")
-        print("Aiven MySQL Initialized Successfully.")
-    except Exception as e:
-        print(f"Init Error: {e}")
-    finally:
-        conn.close()
+    <div id="view-home" class="page-container active-page" style="text-align: center; max-width: 500px;">
+        <div class="title"><i class="fas fa-building-columns"></i> Smart Hostel System</div>
+        <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="goToView('view-login')">Student Portal</button>
+        <button class="btn btn-outline" style="width: 100%;" onclick="goToView('view-admin-login')">Admin Portal</button>
+    </div>
 
-# Start database on app launch
-init_db()
+    <div id="view-login" class="page-container" style="max-width: 400px;">
+        <div class="title">Student Login</div>
+        <div id="login-error" class="error-box">Invalid ID or Password.</div>
+        <div class="input-group"><label>ID</label><input type="text" id="login-id" placeholder="AMRITA2001"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="login-pass"></div>
+        <button class="btn" style="width: 100%;" onclick="attemptLogin()">Login</button>
+        <div style="text-align: center; margin-top: 15px;"><a href="#" onclick="goToView('view-home')">Back to Home</a></div>
+    </div>
 
-@app.route('/')
-def home():
-    return render_template('hostel.html')
+    <div id="view-admin-login" class="page-container" style="max-width: 400px;">
+        <div class="title">Admin Login</div>
+        <div class="input-group"><label>Admin ID</label><input type="text" id="admin-id"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="admin-pass"></div>
+        <button class="btn" style="width: 100%;" onclick="attemptAdminLogin()">Access Panel</button>
+        <div style="text-align: center; margin-top: 15px;"><a href="#" onclick="goToView('view-home')">Back to Home</a></div>
+    </div>
 
-@app.route('/api/sync', methods=['GET'])
-def pull_data():
-    conn = get_db_connection()
-    if not conn: return jsonify({"error": "DB Connection Failed"}), 500
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM students")
-            rows = cursor.fetchall()
-            db_list = []
-            for r in rows:
-                db_list.append({
-                    "id": r["id"], "name": r["name"], "course": r["course"], "pass": r["pass"],
-                    "booked": bool(r["booked"]), "room": r["room"], "bed": r["bed"],
-                    "bookingTime": r["bookingTime"], "isWaitlisted": bool(r["isWaitlisted"]),
-                    "waitRoom": r["waitRoom"], "waitBed": r["waitBed"], "adminLocked": bool(r["adminLocked"])
-                })
-            cursor.execute("SELECT queue_json FROM queue_state WHERE id='1'")
-            q_row = cursor.fetchone()
-            queue_data = json.loads(q_row["queue_json"]) if q_row else {}
-        return jsonify({"db": db_list, "queue": queue_data})
-    finally:
-        conn.close()
+    <div id="view-admin" class="page-container">
+        <div class="header-buttons"><button class="btn-back" onclick="goToView('view-home')">Logout</button></div>
+        <div class="title">Hostel Admin Dashboard</div>
 
-@app.route('/api/sync', methods=['POST'])
-def push_data():
-    data = request.json
-    db_list = data.get("db", [])
-    queue_data = data.get("queue", {})
-    conn = get_db_connection()
-    if not conn: return jsonify({"error": "DB Connection Failed"}), 500
-    try:
-        with conn.cursor() as cursor:
-            for s in db_list:
-                sql = """
-                    INSERT INTO students (id, name, course, pass, booked, room, bed, bookingTime, isWaitlisted, waitRoom, waitBed, adminLocked)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON DUPLICATE KEY UPDATE
-                    name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, bookingTime=%s, isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s
-                """
-                b_time = int(s["bookingTime"]) if s.get("bookingTime") else 0
-                vals = (
-                    s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], b_time, int(s["isWaitlisted"]), s["waitRoom"], s["waitBed"], int(s["adminLocked"]),
-                    s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], b_time, int(s["isWaitlisted"]), s["waitRoom"], s["waitBed"], int(s["adminLocked"])
-                )
-                cursor.execute(sql, vals)
-            cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (json.dumps(queue_data),))
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-    finally:
-        conn.close()
+        <div class="input-group">
+            <label><i class="fas fa-search"></i> Global Search</label>
+            <input type="text" id="admin-search-input" onkeyup="filterAdminTable()" placeholder="Search ID, Name, or Room...">
+        </div>
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+        <div style="background: #fdfdfd; border: 2px solid #a31d33; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <h4 style="margin:0 0 10px 0; color:#a31d33;">Room Inspector</h4>
+            <div style="display: flex; gap: 15px;">
+                <div class="input-group" style="flex:1;"><label>Course</label><select id="admin-course-filter" onchange="updateAdminFloors()"><option value="CSE">CSE</option><option value="AI">AI</option><option value="EEE">EEE</option><option value="MBA">MBA</option></select></div>
+                <div class="input-group" style="flex:1;"><label>Floor</label><select id="admin-floor-filter" onchange="generateAdminRooms()"></select></div>
+            </div>
+            <div class="room-grid" id="admin-room-tags"></div>
+            <div id="inspect-container" style="display:none; text-align: center;">
+                <h5 id="inspect-room-title"></h5>
+                <div class="floor-plan" style="scale: 0.7;">
+                    <div id="ins-bed-1" class="bed pos-1"></div><div id="ins-bed-2" class="bed pos-2"></div>
+                    <div id="ins-bed-3" class="bed pos-3"></div><div id="ins-bed-4" class="bed pos-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" style="background:#28a745; margin-bottom: 20px;" onclick="openAddStudentModal()">+ Add Student</button>
+
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Status</th><th>Room</th><th>Bed</th><th>Actions</th></tr></thead>
+                <tbody id="admin-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="admin-add-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAddStudentModal()">&times;</span>
+            <h3 style="color:#a31d33;">Enroll New Student</h3>
+            <div class="input-group"><label>Roll Number</label><input type="text" id="add-id-input"></div>
+            <div class="input-group"><label>Full Name</label><input type="text" id="add-name-input"></div>
+            <div class="input-group"><label>Course</label><select id="add-course-input"><option value="CSE">CSE</option><option value="AI">AI</option><option value="EEE">EEE</option><option value="MBA">MBA</option></select></div>
+            <button class="btn" style="width:100%; background:#28a745;" onclick="saveNewStudent()">Enroll Student</button>
+        </div>
+    </div>
+
+    <script>
+        let db = []; let waitlistQueue = {};
+        const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
+        let currentUser = null, editingStudentId = null;
+
+        async function pullData() {
+            try {
+                let res = await fetch('/api/sync');
+                let data = await res.json();
+                db = data.db || []; waitlistQueue = data.queue || {};
+            } catch(e) { console.error(e); }
+        }
+
+        async function pushData() {
+            await fetch('/api/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({db: db, queue: waitlistQueue}) });
+        }
+
+        function goToView(id) {
+            document.querySelectorAll('.page-container').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(id).classList.add('active-page');
+        }
+
+        async function attemptAdminLogin() {
+            if(document.getElementById('admin-id').value === "ADMINAMRITA2000") {
+                await pullData();
+                updateAdminFloors();
+                renderAdminTable();
+                goToView('view-admin');
+            }
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
+            db.forEach(s => {
+                const status = s.adminLocked ? 'Locked' : (s.isWaitlisted ? 'Waitlist' : (s.booked ? 'Paid' : 'Pending'));
+                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${status}</td><td>${s.room}</td><td>${s.bed}</td><td><button class="btn" onclick="alert('Editing ${s.id}')">Edit</button></td></tr>`;
+            });
+        }
+
+        function filterAdminTable() {
+            let q = document.getElementById('admin-search-input').value.toUpperCase();
+            document.querySelectorAll('#admin-table-body tr').forEach(r => r.style.display = r.innerText.toUpperCase().includes(q) ? "" : "none");
+        }
+
+        function openAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'flex'; }
+        function closeAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'none'; }
+
+        async function saveNewStudent() {
+            const id = document.getElementById('add-id-input').value.toUpperCase();
+            const name = document.getElementById('add-name-input').value;
+            if(!id || !name) return alert("Fill all fields");
+            db.push({ id: id, name: name, course: document.getElementById('add-course-input').value, pass: "1234", booked: false, room: "-", bed: "-", bookingTime: 0, isWaitlisted: false, waitRoom: "-", waitBed: "-", adminLocked: false });
+            await pushData();
+            closeAddStudentModal();
+            renderAdminTable();
+        }
+
+        function updateAdminFloors() {
+            const c = document.getElementById('admin-course-filter').value;
+            const sel = document.getElementById('admin-floor-filter'); sel.innerHTML = '';
+            floorAllocation[c].forEach(f => sel.innerHTML += `<option value="${f}">Floor ${f}</option>`);
+            generateAdminRooms();
+        }
+
+        function generateAdminRooms() {
+            const f = document.getElementById('admin-floor-filter').value;
+            const div = document.getElementById('admin-room-tags'); div.innerHTML = '';
+            for(let i = (f*100)+1; i <= (f*100)+8; i++) div.innerHTML += `<div class="room-tag" onclick="inspectRoom(${i})">Room ${i}</div>`;
+        }
+
+        function inspectRoom(num) {
+            document.getElementById('inspect-container').style.display = 'block';
+            document.getElementById('inspect-room-title').innerText = "Room " + num;
+            for(let i=1; i<=4; i++) {
+                const el = document.getElementById('ins-bed-'+i);
+                const occ = db.find(s => s.room == num && s.bed == i && s.booked);
+                el.className = `bed pos-${i} ` + (occ ? "bed-booked" : "bed-available");
+                el.innerHTML = `<div class="pillow"></div>` + (occ ? occ.id : "EMPTY");
+            }
+        }
+
+        window.onload = pullData;
+    </script>
+</body>
+</html>
