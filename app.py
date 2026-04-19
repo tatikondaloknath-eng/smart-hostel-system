@@ -6,28 +6,33 @@ import urllib.parse as urlparse
 
 app = Flask(__name__)
 
-# The Database URI is pulled from Render's Environment Variables.
-# The second string is a "fallback" in case the environment variable isn't set.
+# --- DATABASE CONFIGURATION ---
+# Using the Service URI from your Aiven Console
+# If DATABASE_URL is set in Render Environment, it uses that. Otherwise, it uses this default.
 DEFAULT_URI = "mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED"
-MYSQL_URI = os.environ.get('mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED', "mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb")
+MYSQL_URI = os.environ.get('DATABASE_URL', DEFAULT_URI)
 
 def get_db_connection():
-    # This automatically splits the long URI into host, user, password, etc.
-    url = urlparse.urlparse(MYSQL_URI)
-    
-    return pymysql.connect(
-        host=mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com,
-        user=avnadmin,
-        password=AVNS_rZA-pYBFxb8dJha_tYX,
-        port=26298,
-        database='mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED', # Removes the '/' from the start of the path
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit=True,
-        ssl={'ssl': {}} # Aiven requires SSL
-    )
+    try:
+        url = urlparse.urlparse(MYSQL_URI)
+        return pymysql.connect(
+            host=url.hostname,
+            user=url.username,
+            password=url.password,
+            port=url.port,
+            database=url.path[1:],
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=True,
+            ssl={'ssl': {}}  # Required for Aiven
+        )
+    except Exception as e:
+        print(f"Connection Error: {e}")
+        return None
 
 def init_db():
     conn = get_db_connection()
+    if conn is None:
+        return
     try:
         with conn.cursor() as cursor:
             # Create Students Table
@@ -54,15 +59,16 @@ def init_db():
                     queue_json TEXT
                 )
             ''')
-            
             cursor.execute("SELECT COUNT(*) as count FROM queue_state")
             if cursor.fetchone()['count'] == 0:
                 cursor.execute("INSERT INTO queue_state (id, queue_json) VALUES ('1', '{}')")
-        print("Aiven MySQL Database Initialized.")
+        print("Aiven MySQL Initialized Successfully.")
+    except Exception as e:
+        print(f"Init Error: {e}")
     finally:
         conn.close()
 
-# Initialize tables
+# Start database on app launch
 init_db()
 
 @app.route('/')
@@ -72,11 +78,11 @@ def home():
 @app.route('/api/sync', methods=['GET'])
 def pull_data():
     conn = get_db_connection()
+    if not conn: return jsonify({"error": "DB Connection Failed"}), 500
     try:
         with conn.cursor() as cursor:
             cursor.execute("SELECT * FROM students")
             rows = cursor.fetchall()
-            
             db_list = []
             for r in rows:
                 db_list.append({
@@ -85,11 +91,9 @@ def pull_data():
                     "bookingTime": r["bookingTime"], "isWaitlisted": bool(r["isWaitlisted"]),
                     "waitRoom": r["waitRoom"], "waitBed": r["waitBed"], "adminLocked": bool(r["adminLocked"])
                 })
-
             cursor.execute("SELECT queue_json FROM queue_state WHERE id='1'")
             q_row = cursor.fetchone()
             queue_data = json.loads(q_row["queue_json"]) if q_row else {}
-            
         return jsonify({"db": db_list, "queue": queue_data})
     finally:
         conn.close()
@@ -99,8 +103,8 @@ def push_data():
     data = request.json
     db_list = data.get("db", [])
     queue_data = data.get("queue", {})
-    
     conn = get_db_connection()
+    if not conn: return jsonify({"error": "DB Connection Failed"}), 500
     try:
         with conn.cursor() as cursor:
             for s in db_list:
@@ -116,11 +120,9 @@ def push_data():
                     s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], b_time, int(s["isWaitlisted"]), s["waitRoom"], s["waitBed"], int(s["adminLocked"])
                 )
                 cursor.execute(sql, vals)
-                
             cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (json.dumps(queue_data),))
         return jsonify({"success": True})
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
         conn.close()
