@@ -2,17 +2,17 @@ from flask import Flask, render_template, request, jsonify
 import pymysql
 import json
 import os
+import urllib.parse as urlparse
 
 app = Flask(__name__)
 
-# REPLACE this with your Aiven Service URI
-# Format: mysql://avnadmin:password@host:port/defaultdb
-MYSQL_URI = os.environ.get('mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED', 'mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED')
+# The Database URI is pulled from Render's Environment Variables.
+# The second string is a "fallback" in case the environment variable isn't set.
+DEFAULT_URI = "mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED"
+MYSQL_URI = os.environ.get('mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED', "mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb")
 
 def get_db_connection():
-    # Parsing the URI manually if needed, or using from_url style logic
-    # Aiven URIs are standard; we use pymysql to connect
-    import urllib.parse as urlparse
+    # This automatically splits the long URI into host, user, password, etc.
     url = urlparse.urlparse(MYSQL_URI)
     
     return pymysql.connect(
@@ -20,15 +20,17 @@ def get_db_connection():
         user=avnadmin,
         password=AVNS_rZA-pYBFxb8dJha_tYX,
         port=26298,
-        database=mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED,
-        cursorclass=pymysql.cursors.DictCursor
+        database='mysql://avnadmin:AVNS_rZA-pYBFxb8dJha_tYX@mysql-2779b50c-tatikondaloknath-205b.k.aivencloud.com:26298/defaultdb?ssl-mode=REQUIRED', # Removes the '/' from the start of the path
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=True,
+        ssl={'ssl': {}} # Aiven requires SSL
     )
 
 def init_db():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # MySQL uses BIGINT for timestamps and TEXT/VARCHAR for IDs
+            # Create Students Table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS students (
                     id VARCHAR(50) PRIMARY KEY, 
@@ -45,6 +47,7 @@ def init_db():
                     adminLocked TINYINT(1)
                 )
             ''')
+            # Create Queue Table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS queue_state (
                     id VARCHAR(10) PRIMARY KEY, 
@@ -55,10 +58,11 @@ def init_db():
             cursor.execute("SELECT COUNT(*) as count FROM queue_state")
             if cursor.fetchone()['count'] == 0:
                 cursor.execute("INSERT INTO queue_state (id, queue_json) VALUES ('1', '{}')")
-        conn.commit()
+        print("Aiven MySQL Database Initialized.")
     finally:
         conn.close()
 
+# Initialize tables
 init_db()
 
 @app.route('/')
@@ -100,26 +104,20 @@ def push_data():
     try:
         with conn.cursor() as cursor:
             for s in db_list:
-                # MySQL uses INSERT ... ON DUPLICATE KEY UPDATE for easy syncing
                 sql = """
                     INSERT INTO students (id, name, course, pass, booked, room, bed, bookingTime, isWaitlisted, waitRoom, waitBed, adminLocked)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                     name=%s, course=%s, pass=%s, booked=%s, room=%s, bed=%s, bookingTime=%s, isWaitlisted=%s, waitRoom=%s, waitBed=%s, adminLocked=%s
                 """
+                b_time = int(s["bookingTime"]) if s.get("bookingTime") else 0
                 vals = (
-                    s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], 
-                    int(s["bookingTime"]) if s.get("bookingTime") else 0, int(s["isWaitlisted"]), 
-                    s["waitRoom"], s["waitBed"], int(s["adminLocked"]),
-                    # Values for the UPDATE part
-                    s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], 
-                    int(s["bookingTime"]) if s.get("bookingTime") else 0, int(s["isWaitlisted"]), 
-                    s["waitRoom"], s["waitBed"], int(s["adminLocked"])
+                    s["id"], s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], b_time, int(s["isWaitlisted"]), s["waitRoom"], s["waitBed"], int(s["adminLocked"]),
+                    s["name"], s["course"], s["pass"], int(s["booked"]), s["room"], s["bed"], b_time, int(s["isWaitlisted"]), s["waitRoom"], s["waitBed"], int(s["adminLocked"])
                 )
                 cursor.execute(sql, vals)
                 
             cursor.execute("UPDATE queue_state SET queue_json=%s WHERE id='1'", (json.dumps(queue_data),))
-        conn.commit()
         return jsonify({"success": True})
     except Exception as e:
         print(f"Error: {e}")
@@ -128,4 +126,5 @@ def push_data():
         conn.close()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
