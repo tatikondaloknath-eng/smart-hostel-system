@@ -3,134 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Hostel System</title>
+    <title>Amrita Smart Hostel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
-        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 1000px; margin: auto; box-sizing: border-box; position: relative; }
-        .active-page { display: block; }
-        .title { color: #a31d33; font-size: 26px; font-weight: bold; margin-bottom: 20px; text-align: center; }
-        .btn { padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; background-color: #a31d33; color: white; margin-top: 10px; }
-        .btn:hover { background-color: #8a182b; }
-        .btn-outline { background-color: white; color: #a31d33; border: 2px solid #a31d33; }
-        .btn-back { background: #6c757d; color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
-        .header-buttons { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #4a4a4a;}
-        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px;}
-        .error-box { color: #a31d33; background: #fcebeb; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; text-align: center;}
-        
-        /* TABLE STYLES */
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left; }
-        th { background-color: #a31d33; color: white; padding: 12px; }
-        td { border: 1px solid #ddd; padding: 10px; }
+        :root { --primary: #a31d33; --bg: #f8f9fa; --text: #333; --success: #28a745; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; color: var(--text); }
+        .page-container { display: none; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 95%; max-width: 1000px; margin: 40px auto; min-height: 550px; position: relative; }
+        .active-page { display: block; animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* FLOOR PLAN */
-        .floor-plan { width: 600px; height: 400px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; }
-        .bed { position: absolute; width: 80px; height: 130px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-        .pillow { position: absolute; top: 10px; width: 50px; height: 25px; background: white; border: 1px solid #ccc; border-radius: 4px; }
-        .bed-available { border-color: #28a745; }
-        .bed-selected { border-color: #28a745; background: #d4edda; border-width: 3px; }
-        .bed-booked { border-color: #dc3545; background: #f8d7da; }
+        .title { color: var(--primary); font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 30px; }
+        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; background: var(--primary); color: white; transition: 0.3s; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
+
+        .header-buttons { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+
+        /* BED DESIGN */
+        .floor-plan { width: 600px; height: 400px; border: 5px solid #444; margin: 20px auto; position: relative; background: #fff; border-radius: 10px; }
+        .bed { position: absolute; width: 90px; height: 140px; border: 3px solid #ccc; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .bed-available { border-color: var(--success); color: var(--success); }
+        .bed-booked { background: #fcebeb; border-color: var(--primary); color: var(--primary); cursor: not-allowed; }
+        .bed-selected { background: var(--primary); color: white; border-color: var(--primary); }
         .pos-1 { top: 20px; left: 20px; } .pos-2 { top: 20px; right: 20px; } .pos-3 { bottom: 20px; left: 20px; } .pos-4 { bottom: 20px; right: 20px; }
 
-        .room-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
-        .room-tag { padding: 8px 12px; background: #eee; border-radius: 5px; cursor: pointer; font-weight: bold; border: 1px solid #ddd; }
-        .room-tag:hover { background: #a31d33; color: white; }
+        /* ADMIN TABLE */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: var(--primary); color: white; padding: 15px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
 
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; }
-        .modal-content { background-color: white; padding: 30px; border-radius: 10px; width: 400px; position: relative; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 400px; }
     </style>
 </head>
 <body>
 
-    <div id="view-home" class="page-container active-page" style="text-align: center; max-width: 500px;">
-        <div class="title"><i class="fas fa-building-columns"></i> Smart Hostel System</div>
-        <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="goToView('view-login')">Student Portal</button>
-        <button class="btn btn-outline" style="width: 100%;" onclick="goToView('view-admin-login')">Admin Portal</button>
-    </div>
-
-    <div id="view-login" class="page-container" style="max-width: 400px;">
-        <div class="title">Student Login</div>
-        <div id="login-error" class="error-box">Invalid ID or Password.</div>
-        <div class="input-group"><label>ID</label><input type="text" id="login-id" placeholder="AMRITA2001"></div>
-        <div class="input-group"><label>Password</label><input type="password" id="login-pass"></div>
-        <button class="btn" style="width: 100%;" onclick="attemptLogin()">Login</button>
-        <div style="text-align: center; margin-top: 15px;"><a href="#" onclick="goToView('view-home')">Back to Home</a></div>
-    </div>
-
-    <div id="view-admin-login" class="page-container" style="max-width: 400px;">
-        <div class="title">Admin Login</div>
-        <div class="input-group"><label>Admin ID</label><input type="text" id="admin-id"></div>
-        <div class="input-group"><label>Password</label><input type="password" id="admin-pass"></div>
-        <button class="btn" style="width: 100%;" onclick="attemptAdminLogin()">Access Panel</button>
-        <div style="text-align: center; margin-top: 15px;"><a href="#" onclick="goToView('view-home')">Back to Home</a></div>
+    <div id="view-home" class="page-container active-page" style="text-align: center;">
+        <div class="title">Amrita Smart Hostel System</div>
+        <div style="display: flex; gap: 20px; justify-content: center; margin-top: 50px;">
+            <button class="btn" onclick="goToView('view-login')">Student Portal</button>
+            <button class="btn btn-outline" onclick="goToView('view-admin-login')">Admin Portal</button>
+        </div>
     </div>
 
     <div id="view-floor" class="page-container">
         <div class="header-buttons">
-            <button class="btn-outline" style="padding: 10px 20px; font-size: 14px;" onclick="openPassModal()">Change Password</button>
-            <button class="btn-back" onclick="logout()">Logout</button>
+            <button class="btn btn-outline" onclick="openPassModal()">Change Password</button>
+            <button class="btn" style="background:#6c757d" onclick="logout()">Logout</button>
         </div>
-        <div class="title">Select Room (<span id="display-dept"></span>)</div>
-        <div id="already-booked-alert" class="error-box" style="background:#d4edda; color:#155724; display:none;">Booked: Room <span id="alert-room"></span></div>
-        <div class="input-group" style="max-width: 300px; margin: 0 auto;"><select id="floor-select" onchange="generateRoomGrid(this.value)"></select></div>
-        <div class="room-grid" id="room-grid-container"></div>
+        <div class="title">Select Your Room (<span id="display-dept"></span>)</div>
+        <div style="max-width: 300px; margin: 0 auto;" class="input-group">
+            <select id="floor-select" onchange="generateRoomGrid(this.value)"></select>
+        </div>
+        <div id="room-grid-container" style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 30px;"></div>
     </div>
 
     <div id="view-admin" class="page-container">
-        <div class="header-buttons"><button class="btn-back" onclick="goToView('view-home')">Logout</button></div>
-        <div class="title">Admin Dashboard</div>
-        <div class="input-group">
-            <label><i class="fas fa-search"></i> Search Students</label>
-            <input type="text" id="admin-search-input" onkeyup="filterAdminTable()" placeholder="Search ID, Name, or Room...">
+        <div class="header-buttons"><button class="btn" onclick="logout()">Logout</button></div>
+        <div class="title">Admin Control Panel</div>
+        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <input type="text" id="admin-search-input" onkeyup="filterAdminTable()" placeholder="Search students..." style="flex:1; padding:12px; border-radius:8px; border:1px solid #ddd;">
+            <button class="btn" style="background:var(--success)" onclick="openAddStudentModal()">+ Enroll Student</button>
         </div>
-        <button class="btn" style="background:#28a745; margin-bottom: 20px;" onclick="openAddStudentModal()">+ Add Student</button>
-        <div class="table-responsive">
-            <table>
-                <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Status</th><th>Room</th><th>Bed</th></tr></thead>
-                <tbody id="admin-table-body"></tbody>
-            </table>
-        </div>
+        <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Status</th><th>Room</th></tr></thead>
+            <tbody id="admin-table-body"></tbody>
+        </table>
     </div>
 
-    <div id="student-pass-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closePassModal()">&times;</span>
-            <h3 style="color:#a31d33;">Update Password</h3>
-            <div class="input-group"><label>New Password</label><input type="password" id="new-student-pass"></div>
-            <button class="btn" style="width:100%;" onclick="saveStudentPassword()">Update Password</button>
-        </div>
-    </div>
-
-    <div id="admin-add-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeAddStudentModal()">&times;</span>
-            <h3 style="color:#a31d33;">Enroll New Student</h3>
-            <div class="input-group"><label>Roll Number</label><input type="text" id="add-id-input"></div>
-            <div class="input-group"><label>Full Name</label><input type="text" id="add-name-input"></div>
-            <div class="input-group"><label>Course</label><select id="add-course-input"><option value="CSE">CSE</option><option value="AI">AI</option><option value="EEE">EEE</option><option value="MBA">MBA</option></select></div>
-            <button class="btn" style="width:100%; background:#28a745;" onclick="saveNewStudent()">Enroll Student</button>
-        </div>
-    </div>
+    <div id="student-pass-modal" class="modal"><div class="modal-content"><h3>Update Password</h3><div class="input-group"><input type="password" id="new-student-pass" placeholder="New Password"></div><button class="btn" style="width:100%" onclick="saveStudentPassword()">Save</button><button class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="closePassModal()">Cancel</button></div></div>
+    <div id="admin-add-modal" class="modal"><div class="modal-content"><h3>Enroll Student</h3><div class="input-group"><input type="text" id="add-id-input" placeholder="Roll No"><br><br><input type="text" id="add-name-input" placeholder="Full Name"><br><br><select id="add-course-input"><option value="CSE">CSE</option><option value="AI">AI</option></select></div><button class="btn" style="width:100%" onclick="saveNewStudent()">Enroll</button></div></div>
 
     <script>
-        let db = []; let waitlistQueue = {};
-        const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
+        let db = []; const floorAllocation = { "CSE": [1, 2], "AI": [3, 4] };
         let currentUser = null;
 
         async function pullData() {
-            try {
-                let res = await fetch('/api/sync');
-                let data = await res.json();
-                db = data.db || []; waitlistQueue = data.queue || {};
-            } catch(e) { console.error(e); }
+            const res = await fetch('/api/sync');
+            const data = await res.json();
+            db = data.db || [];
         }
 
         async function pushData() {
-            await fetch('/api/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({db: db, queue: waitlistQueue}) });
+            await fetch('/api/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({db: db}) });
         }
 
         function goToView(id) {
@@ -140,65 +98,8 @@
 
         async function attemptLogin() {
             await pullData();
-            const id = document.getElementById('login-id').value.toUpperCase();
-            const pass = document.getElementById('login-pass').value;
-            const u = db.find(s => s.id === id && s.pass === pass);
-            if(u) {
-                currentUser = u;
-                document.getElementById('display-dept').innerText = u.course;
-                setupFloorDropdown(u.course);
-                goToView('view-floor');
-            } else { document.getElementById('login-error').style.display = 'block'; }
-        }
-
-        function logout() { currentUser = null; goToView('view-home'); }
-        function openPassModal() { document.getElementById('student-pass-modal').style.display = 'flex'; }
-        function closePassModal() { document.getElementById('student-pass-modal').style.display = 'none'; }
-
-        async function saveStudentPassword() {
-            const newPass = document.getElementById('new-student-pass').value;
-            if(!newPass) return alert("Enter password");
-            const idx = db.findIndex(s => s.id === currentUser.id);
-            if(idx !== -1) {
-                db[idx].pass = newPass;
-                await pushData();
-                alert("Password changed!");
-                closePassModal();
-            }
-        }
-
-        async function attemptAdminLogin() {
-            if(document.getElementById('admin-id').value === "ADMINAMRITA2000") {
-                await pullData();
-                renderAdminTable();
-                goToView('view-admin');
-            }
-        }
-
-        function renderAdminTable() {
-            const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
-            db.forEach(s => {
-                const status = s.booked ? 'Paid' : 'Pending';
-                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${status}</td><td>${s.room}</td><td>${s.bed}</td></tr>`;
-            });
-        }
-
-        function filterAdminTable() {
-            let q = document.getElementById('admin-search-input').value.toUpperCase();
-            document.querySelectorAll('#admin-table-body tr').forEach(r => r.style.display = r.innerText.toUpperCase().includes(q) ? "" : "none");
-        }
-
-        function openAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'flex'; }
-        function closeAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'none'; }
-
-        async function saveNewStudent() {
-            const id = document.getElementById('add-id-input').value.toUpperCase();
-            const name = document.getElementById('add-name-input').value;
-            if(!id || !name) return alert("Fill all fields");
-            db.push({ id: id, name: name, course: document.getElementById('add-course-input').value, pass: "1234", booked: false, room: "-", bed: "-", bookingTime: 0, isWaitlisted: false, waitRoom: "-", waitBed: "-", adminLocked: false });
-            await pushData();
-            closeAddStudentModal();
-            renderAdminTable();
+            const u = db.find(s => s.id === document.getElementById('login-id').value.toUpperCase());
+            if(u) { currentUser = u; setupFloorDropdown(u.course); goToView('view-floor'); }
         }
 
         function setupFloorDropdown(c) {
@@ -209,9 +110,34 @@
 
         function generateRoomGrid(f) {
             const g = document.getElementById('room-grid-container'); g.innerHTML = '';
-            for(let i = (f*100)+1; i <= (f*100)+8; i++) g.innerHTML += `<div class="room-tag" onclick="alert('Room selection logic active')">Room ${i}</div>`;
+            for(let i = (f*100)+1; i <= (f*100)+8; i++) 
+                g.innerHTML += `<div style="padding:15px; border:1px solid #ddd; border-radius:10px; cursor:pointer;" onclick="alert('Room selection active')">Room ${i}</div>`;
         }
 
+        function openPassModal() { document.getElementById('student-pass-modal').style.display='flex'; }
+        function closePassModal() { document.getElementById('student-pass-modal').style.display='none'; }
+        async function saveStudentPassword() {
+            const newPass = document.getElementById('new-student-pass').value;
+            const idx = db.findIndex(s => s.id === currentUser.id);
+            if(idx !== -1 && newPass) { db[idx].pass = newPass; await pushData(); alert("Success!"); closePassModal(); }
+        }
+
+        async function attemptAdminLogin() {
+            if(document.getElementById('admin-id').value === "ADMINAMRITA2000") { await pullData(); renderAdminTable(); goToView('view-admin'); }
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
+            db.forEach(s => tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${s.booked ? "PAID":"-"}</td><td>${s.room}</td></tr>`);
+        }
+
+        function openAddStudentModal() { document.getElementById('admin-add-modal').style.display='flex'; }
+        async function saveNewStudent() {
+            db.push({ id: document.getElementById('add-id-input').value.toUpperCase(), name: document.getElementById('add-name-input').value, course: document.getElementById('add-course-input').value, pass: "1234", booked: false, room: "-", bed: "-" });
+            await pushData(); renderAdminTable(); document.getElementById('admin-add-modal').style.display='none';
+        }
+
+        function logout() { location.reload(); }
         window.onload = pullData;
     </script>
 </body>
