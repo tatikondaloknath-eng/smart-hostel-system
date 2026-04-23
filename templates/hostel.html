@@ -20,7 +20,6 @@
         .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px;}
         .error-box { color: #a31d33; background: #fcebeb; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; font-weight: bold; text-align: center;}
         
-        /* RESTORED BED STYLES */
         .floor-plan-wrapper { width: 100%; overflow-x: auto; padding: 10px 0; text-align: center; }
         .floor-plan { width: 600px; height: 400px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; display: inline-block; text-align: left; }
         .bed { position: absolute; width: 80px; height: 130px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.2s; cursor: pointer; font-size: 10px; font-weight: bold; }
@@ -78,7 +77,6 @@
         </div>
     </div>
 
-    <!-- UPDATED: Added "Change Password" button to header-buttons -->
     <div id="view-floor" class="page-container">
         <div class="header-buttons">
             <button class="btn-outline" style="padding: 10px 20px; font-size: 14px;" onclick="openPassModal()">Change Password</button>
@@ -101,11 +99,13 @@
             </div>
         </div>
         <button id="btn-confirm" class="btn" style="width: 100%; opacity:0.5;" disabled onclick="goToPayment()">Proceed to Payment</button>
+        <p id="waitlist-hint" style="text-align:center; font-size:12px; color:#666; margin-top:10px; display:none;">Note: Occupied beds can be selected to join the Waiting List (₹500).</p>
     </div>
 
     <div id="view-payment" class="page-container" style="max-width: 500px;">
         <div class="header-buttons"><button class="btn-back" onclick="goToView('view-room')">Back</button></div>
         <div class="title">Secure Checkout</div>
+        <div id="pay-summary" style="text-align:center; margin-bottom:20px; font-weight:bold;"></div>
         <div class="input-group"><label>Mobile Number</label><input type="text" id="pay-mobile" maxlength="10"></div>
         <div class="input-group"><label>Cardholder Name</label><input type="text" placeholder="Full Name"></div>
         <div class="input-group"><label>Card Number</label><input type="text" maxlength="16" placeholder="XXXX XXXX XXXX XXXX"></div>
@@ -157,7 +157,6 @@
         </div>
     </div>
 
-    <!-- ADDED: Student Change Password Modal -->
     <div id="student-pass-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closePassModal()">&times;</span>
@@ -290,7 +289,9 @@
                 document.getElementById('display-dept').innerText = u.course;
                 setupFloorDropdown(u.course);
                 document.getElementById('already-booked-alert').style.display = u.booked ? 'block' : 'none';
+                if(u.booked) document.getElementById('alert-room').innerText = u.room;
                 document.getElementById('waitlist-alert').style.display = u.isWaitlisted ? 'block' : 'none';
+                if(u.isWaitlisted) document.getElementById('wait-room').innerText = u.waitRoom;
                 goToView('view-floor');
             } else { document.getElementById('login-error').style.display = 'block'; }
         }
@@ -309,17 +310,22 @@
         async function openGraphicalRoom(n) {
             await pullData(); currentRoom = n; document.getElementById('room-title').innerText = "Room " + n;
             const can = !(currentUser.booked || currentUser.isWaitlisted);
+            document.getElementById('waitlist-hint').style.display = can ? 'block' : 'none';
+
             for(let i=1; i<=4; i++) {
                 const el = document.getElementById('bed-'+i); 
                 const occ = db.find(s => s.room == n && s.bed == i && s.booked);
+                
                 if(occ) {
-                    el.className = `bed pos-${i} ` + (occ.adminLocked ? 'bed-locked':'bed-waiting');
-                    el.innerHTML = `<div class="pillow"></div><i class="fas fa-lock"></i>`;
-                    el.onclick = null;
+                    el.className = `bed pos-${i} bed-booked`;
+                    el.innerHTML = `<div class="pillow"></div><i class="fas fa-user"></i><br>OCCUPIED`;
+                    // Click to Waitlist
+                    el.onclick = can ? () => chooseBed(el, i, true) : () => alert("You already have a booking or waitlist entry!");
                 } else {
                     el.className = `bed pos-${i} bed-available`;
                     el.innerHTML = `<div class="pillow"></div><i class="fas fa-check" style="display:none;"></i>`;
-                    el.onclick = can ? () => chooseBed(el, i, false) : () => alert("Limited to one booking!");
+                    // Click to Book
+                    el.onclick = can ? () => chooseBed(el, i, false) : () => alert("You already have a booking or waitlist entry!");
                 }
             }
             document.getElementById('btn-confirm').disabled = true;
@@ -327,24 +333,50 @@
         }
 
         function chooseBed(el, n, isW) {
-            document.querySelectorAll('.bed').forEach(b => { b.classList.remove('bed-selected'); if(b.querySelector('.fa-check')) b.querySelector('.fa-check').style.display = 'none'; });
-            el.classList.add('bed-selected'); if(el.querySelector('.fa-check')) el.querySelector('.fa-check').style.display = 'block';
-            selectedBed = n; isJoiningWaitlist = isW;
-            document.getElementById('btn-confirm').disabled = false; document.getElementById('btn-confirm').style.opacity = '1';
+            document.querySelectorAll('.bed').forEach(b => { 
+                b.classList.remove('bed-selected'); 
+                if(b.querySelector('.fa-check')) b.querySelector('.fa-check').style.display = 'none'; 
+            });
+            el.classList.add('bed-selected'); 
+            if(el.querySelector('.fa-check')) el.querySelector('.fa-check').style.display = 'block';
+            
+            selectedBed = n; 
+            isJoiningWaitlist = isW;
+            document.getElementById('btn-confirm').disabled = false; 
+            document.getElementById('btn-confirm').style.opacity = '1';
+            document.getElementById('btn-confirm').innerText = isW ? "Join Waiting List" : "Proceed to Payment";
         }
 
-        function goToPayment() { document.getElementById('pay-amount').innerText = isJoiningWaitlist ? "₹500" : "₹60,000"; goToView('view-payment'); }
+        function goToPayment() { 
+            const amt = isJoiningWaitlist ? "₹500" : "₹60,000";
+            const type = isJoiningWaitlist ? "Waitlist Fee" : "Room Booking Fee";
+            document.getElementById('pay-amount').innerText = amt; 
+            document.getElementById('pay-summary').innerText = `${type} for Room ${currentRoom}, Bed ${selectedBed}`;
+            goToView('view-payment'); 
+        }
+
         function validatePayment() { document.getElementById('otp-modal').style.display = 'flex'; }
         function verifyOTP() { document.getElementById('otp-modal').style.display = 'none'; processPayment(); }
         
         async function processPayment() {
             const idx = db.findIndex(s => s.id === currentUser.id);
-            currentUser.booked = true; currentUser.room = currentRoom; currentUser.bed = selectedBed; currentUser.bookingTime = Date.now();
-            db[idx] = currentUser; await pushData(); logout();
+            if (isJoiningWaitlist) {
+                currentUser.isWaitlisted = true;
+                currentUser.waitRoom = currentRoom;
+                currentUser.waitBed = selectedBed;
+            } else {
+                currentUser.booked = true;
+                currentUser.room = currentRoom;
+                currentUser.bed = selectedBed;
+                currentUser.bookingTime = Date.now();
+            }
+            db[idx] = currentUser; 
+            await pushData(); 
+            alert(isJoiningWaitlist ? "Added to Waiting List!" : "Booking Successful!");
+            logout();
         }
 
         function logout() { currentUser = null; goToView('view-home'); }
-        function logoutAdmin() { goToView('view-home'); }
         function goToView(id) { document.querySelectorAll('.page-container').forEach(p => p.classList.remove('active-page')); document.getElementById(id).classList.add('active-page'); }
         
         function openAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'flex'; }
@@ -366,33 +398,18 @@
             await pushData(); closeAdminModal(); renderAdminTable();
         }
 
-        // ADDED: Student password change functions
-        function openPassModal() {
-            document.getElementById('student-pass-modal').style.display = 'flex';
-        }
-
-        function closePassModal() {
-            document.getElementById('student-pass-modal').style.display = 'none';
-            document.getElementById('new-student-pass').value = '';
-        }
+        function openPassModal() { document.getElementById('student-pass-modal').style.display = 'flex'; }
+        function closePassModal() { document.getElementById('student-pass-modal').style.display = 'none'; document.getElementById('new-student-pass').value = ''; }
 
         async function saveStudentPassword() {
             const newPass = document.getElementById('new-student-pass').value;
-            if (!newPass || newPass.trim() === "") {
-                alert("Please enter a valid password.");
-                return;
-            }
+            if (!newPass || newPass.trim() === "") { alert("Please enter a valid password."); return; }
             const userIndex = db.findIndex(s => s.id === currentUser.id);
             if (userIndex !== -1) {
                 db[userIndex].pass = newPass;
                 currentUser.pass = newPass;
-                try {
-                    await pushData();
-                    alert("Password updated successfully!");
-                    closePassModal();
-                } catch (error) {
-                    alert("Failed to update password. Please check your connection.");
-                }
+                try { await pushData(); alert("Password updated!"); closePassModal(); } 
+                catch (error) { alert("Update failed."); }
             }
         }
 
