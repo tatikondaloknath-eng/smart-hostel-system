@@ -78,8 +78,12 @@
         </div>
     </div>
 
+    <!-- UPDATED: Added "Change Password" button to header-buttons -->
     <div id="view-floor" class="page-container">
-        <div class="header-buttons"><button class="btn-back" onclick="logout()">Logout</button></div>
+        <div class="header-buttons">
+            <button class="btn-outline" style="padding: 10px 20px; font-size: 14px;" onclick="openPassModal()">Change Password</button>
+            <button class="btn-back" onclick="logout()">Logout</button>
+        </div>
         <div class="title">Select Room (<span id="display-dept"></span>)</div>
         <div id="already-booked-alert" class="error-box" style="background:#d4edda; color:#155724; display:none;">Booked: Room <span id="alert-room"></span></div>
         <div id="waitlist-alert" class="error-box" style="background:#fff3cd; color:#856404; display:none;">Waiting: Room <span id="wait-room"></span></div>
@@ -150,6 +154,19 @@
                 <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Pass</th><th>Status</th><th>Room</th><th>Bed</th><th>Actions</th></tr></thead>
                 <tbody id="admin-table-body"></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ADDED: Student Change Password Modal -->
+    <div id="student-pass-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePassModal()">&times;</span>
+            <h3 style="color:#a31d33; margin-top:0;">Update Password</h3>
+            <div class="input-group">
+                <label>New Password</label>
+                <input type="password" id="new-student-pass" placeholder="Enter new password">
+            </div>
+            <button class="btn" style="width:100%; background:#28a745;" onclick="saveStudentPassword()">Update Password</button>
         </div>
     </div>
 
@@ -348,7 +365,37 @@
             db[idx].pass = document.getElementById('edit-pass-input').value || db[idx].pass;
             await pushData(); closeAdminModal(); renderAdminTable();
         }
-        
+
+        // ADDED: Student password change functions
+        function openPassModal() {
+            document.getElementById('student-pass-modal').style.display = 'flex';
+        }
+
+        function closePassModal() {
+            document.getElementById('student-pass-modal').style.display = 'none';
+            document.getElementById('new-student-pass').value = '';
+        }
+
+        async function saveStudentPassword() {
+            const newPass = document.getElementById('new-student-pass').value;
+            if (!newPass || newPass.trim() === "") {
+                alert("Please enter a valid password.");
+                return;
+            }
+            const userIndex = db.findIndex(s => s.id === currentUser.id);
+            if (userIndex !== -1) {
+                db[userIndex].pass = newPass;
+                currentUser.pass = newPass;
+                try {
+                    await pushData();
+                    alert("Password updated successfully!");
+                    closePassModal();
+                } catch (error) {
+                    alert("Failed to update password. Please check your connection.");
+                }
+            }
+        }
+
         window.onload = pullData;
     </script>
 </body>
