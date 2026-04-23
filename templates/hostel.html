@@ -3,201 +3,598 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Hostel System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>University Portal | Complete System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
-        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 1000px; margin: auto; box-sizing: border-box; position: relative; }
-        .active-page { display: block; }
-        .title { color: #a31d33; font-size: 26px; font-weight: bold; margin-bottom: 20px; text-align: center; }
-        .btn { padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; background-color: #a31d33; color: white; margin-top: 10px; }
-        .btn:hover { background-color: #8a182b; }
-        .btn-outline { background-color: white; color: #a31d33; border: 2px solid #a31d33; }
-        .btn-back { background: #6c757d; color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
-        .header-buttons { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #4a4a4a;}
-        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px;}
-        .error-box { color: #a31d33; background: #fcebeb; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; text-align: center;}
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --teacher-color: #e67e22;
+            --bg-color: #f4f7f6;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg-color); color: #333; }
         
-        /* ORIGINAL RED TABLE STYLE */
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left; }
-        th { background-color: #a31d33; color: white; padding: 12px; }
-        td { border: 1px solid #ddd; padding: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        select, input[type="number"], input[type="text"], input[type="password"], input[type="date"] { 
+            padding: 8px; width: 100%; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        
+        .btn-save { background-color: #2ecc71; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 15px; font-size: 1rem; }
+        .btn-add { background-color: var(--teacher-color); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-small { background-color: #34495e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-view { background-color: var(--secondary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+        .btn-view:hover { background-color: #2980b9; }
+        
+        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: var(--primary); color: white; text-align: center; }
+        .login-container { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 15px; width: 300px; }
+        .login-box h2 { margin: 0 0 10px 0; }
+        .student-title { color: var(--primary); }
+        .teacher-title { color: var(--teacher-color); }
+        
+        .role-btn { background-color: var(--secondary); color: white; border: none; padding: 10px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        .role-btn:hover { background-color: #2980b9; }
+        .teacher-btn { background-color: var(--teacher-color); }
+        .teacher-btn:hover { background-color: #d35400; }
+        
+        .dashboard { display: none; padding: 20px; max-width: 1100px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }
+        .logout-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; overflow-x: auto; }
+        
+        .student-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .summary-box { background: #ecf0f1; padding: 15px; border-radius: 8px; text-align: center; }
+        .summary-box h3 { margin: 0; color: var(--primary); font-size: 2rem; }
+        
+        .control-panel { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #fdfbf7; padding: 15px; border-left: 4px solid var(--teacher-color); border-radius: 4px; }
+        .input-group { display: flex; align-items: center; gap: 5px; }
+        .input-group input { width: 70px; text-align: center; }
 
-        /* BED & FLOOR PLAN */
-        .floor-plan { width: 600px; height: 400px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; }
-        .bed { position: absolute; width: 80px; height: 130px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-        .pillow { position: absolute; top: 10px; width: 50px; height: 25px; background: white; border: 1px solid #ccc; border-radius: 4px; }
-        .bed-available { border-color: #28a745; }
-        .bed-selected { border-color: #28a745; background: #d4edda; border-width: 3px; }
-        .bed-waiting { border-color: #fd7e14; background: #fff3cd; }
-        .bed-booked { border-color: #dc3545; background: #f8d7da; }
-        .pos-1 { top: 20px; left: 20px; } .pos-2 { top: 20px; right: 20px; } .pos-3 { bottom: 20px; left: 20px; } .pos-4 { bottom: 20px; right: 20px; }
-
-        .room-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
-        .room-tag { padding: 8px 12px; background: #eee; border-radius: 5px; cursor: pointer; font-weight: bold; border: 1px solid #ddd; }
-        .room-tag:hover { background: #a31d33; color: white; }
-
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 10px; box-sizing: border-box; }
-        .modal-content { background-color: white; padding: 30px; border-radius: 10px; width: 400px; position: relative; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: white; margin: 10% auto; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover { color: #333; }
     </style>
 </head>
 <body>
 
-    <div id="view-home" class="page-container active-page" style="text-align: center; max-width: 500px;">
-        <div class="title"><i class="fas fa-building-columns"></i> Smart Hostel System</div>
-        <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="goToView('view-login')">Student Portal</button>
-        <button class="btn btn-outline" style="width: 100%;" onclick="goToView('view-admin-login')">Admin Portal</button>
-    </div>
-
-    <div id="view-login" class="page-container" style="max-width: 400px;">
-        <div class="title">Student Login</div>
-        <div id="login-error" class="error-box">Invalid ID or Password.</div>
-        <div class="input-group"><label>ID</label><input type="text" id="login-id" placeholder="AMRITA2001"></div>
-        <div class="input-group"><label>Password</label><input type="password" id="login-pass"></div>
-        <button class="btn" style="width: 100%;" onclick="attemptLogin()">Login</button>
-        <div style="text-align: center; margin-top: 15px;"><a href="#" onclick="goToView('view-home')">Back to Home</a></div>
-    </div>
-
-    <div id="view-admin-login" class="page-container" style="max-width: 400px;">
-        <div class="title">Admin Login</div>
-        <div class="input-group"><label>Admin ID</label><input type="text" id="admin-id"></div>
-        <div class="input-group"><label>Password</label><input type="password" id="admin-pass"></div>
-        <button class="btn" style="width: 100%;" onclick="attemptAdminLogin()">Access Panel</button>
-        <div style="text-align: center; margin-top: 15px;"><a href="#" onclick="goToView('view-home')">Back to Home</a></div>
-    </div>
-
-    <div id="view-admin" class="page-container">
-        <div class="header-buttons"><button class="btn-back" onclick="goToView('view-home')">Logout</button></div>
-        <div class="title">Hostel Admin Dashboard</div>
-
-        <div class="input-group">
-            <label><i class="fas fa-search"></i> Global Search</label>
-            <input type="text" id="admin-search-input" onkeyup="filterAdminTable()" placeholder="Search ID, Name, or Room...">
-        </div>
-
-        <div style="background: #fdfdfd; border: 2px solid #a31d33; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-            <h4 style="margin:0 0 10px 0; color:#a31d33;">Room Inspector</h4>
-            <div style="display: flex; gap: 15px;">
-                <div class="input-group" style="flex:1;"><label>Course</label><select id="admin-course-filter" onchange="updateAdminFloors()"><option value="CSE">CSE</option><option value="AI">AI</option><option value="EEE">EEE</option><option value="MBA">MBA</option></select></div>
-                <div class="input-group" style="flex:1;"><label>Floor</label><select id="admin-floor-filter" onchange="generateAdminRooms()"></select></div>
+    <div id="login-screen">
+        <h1 style="margin-bottom: 40px;">University Access Portal</h1>
+        <div class="login-container">
+            <div class="login-box">
+                <h2 class="student-title">Student Portal</h2>
+                <input type="text" id="student-username" placeholder="Student ID">
+                <input type="password" id="student-password" placeholder="Password">
+                <button class="role-btn" onclick="studentLogin()">Login as Student</button>
             </div>
-            <div class="room-grid" id="admin-room-tags"></div>
-            <div id="inspect-container" style="display:none; text-align: center;">
-                <h5 id="inspect-room-title"></h5>
-                <div class="floor-plan" style="scale: 0.7;">
-                    <div id="ins-bed-1" class="bed pos-1"></div><div id="ins-bed-2" class="bed pos-2"></div>
-                    <div id="ins-bed-3" class="bed pos-3"></div><div id="ins-bed-4" class="bed pos-4"></div>
+            <div class="login-box">
+                <h2 class="teacher-title">Teacher Portal</h2>
+                <input type="text" id="teacher-username" placeholder="Teacher ID">
+                <input type="password" id="teacher-password" placeholder="Password">
+                <button class="role-btn teacher-btn" onclick="teacherLogin()">Login as Teacher</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="student-dashboard" class="dashboard">
+        <div class="header">
+            <h2>Student Portal: <span id="logged-in-id" style="color: var(--secondary);"></span></h2>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        
+        <div class="student-grid">
+            <div>
+                <div class="card">
+                    <h3>Daily Attendance Record</h3>
+                    <div class="summary-box" style="margin-bottom: 15px;">
+                        <p>Overall Attendance</p>
+                        <h3 id="overall-attendance" style="color: var(--secondary);">0%</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Classes Attended</th>
+                                <th style="color: var(--secondary);">Percentage</th>
+                                <th>History</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-attendance-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Test Marks Record</h3>
+                    <div class="summary-box" style="margin-bottom: 15px;">
+                        <p>Overall Marks</p>
+                        <h3 id="overall-marks" style="color: var(--teacher-color);">0%</h3>
+                    </div>
+                    <table>
+                        <thead id="student-marks-head"></thead>
+                        <tbody id="student-marks-body"></tbody>
+                    </table>
                 </div>
             </div>
+
+            <div class="card">
+                <h3>Performance Overview</h3>
+                <canvas id="studentChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="teacher-dashboard" class="dashboard">
+        <div class="header">
+            <h2>Teacher Portal: <span id="logged-in-teacher" style="color: var(--teacher-color);"></span></h2>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
 
-        <button class="btn" style="background:#28a745; margin-bottom: 20px;" onclick="openAddStudentModal()">+ Add Student</button>
+        <div class="card" style="border-left: 4px solid var(--teacher-color);">
+            <h3>Add New Student to University Database</h3>
+            <form id="add-student-form" onsubmit="addStudent(event)" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="new-student-id" placeholder="Roll Number" required style="max-width: 200px;">
+                <input type="text" id="new-student-name" placeholder="Full Name" required style="max-width: 200px;">
+                <button type="submit" class="btn-add">Enrol Student</button>
+            </form>
+        </div>
 
-        <div class="table-responsive">
+        <div class="card">
+            <h3 style="color: var(--primary);">Daily Attendance for <span class="teacher-subject-display"></span></h3>
+            <div class="control-panel">
+                <label><strong>Select Date:</strong></label>
+                <input type="date" id="roster-date" onchange="renderAttendanceRoster()" style="max-width: 200px;">
+            </div>
             <table>
-                <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Status</th><th>Room</th><th>Bed</th><th>Actions</th></tr></thead>
-                <tbody id="admin-table-body"></tbody>
+                <thead>
+                    <tr>
+                        <th>Roll Number</th>
+                        <th>Student Name</th>
+                        <th>Attendance Status</th>
+                        <th style="color: var(--secondary);">Overall Att. %</th>
+                    </tr>
+                </thead>
+                <tbody id="teacher-attendance-body"></tbody>
+            </table>
+            <button class="btn-save" onclick="saveAttendanceData()">Save Attendance</button>
+        </div>
+
+        <div class="card">
+            <h3 style="color: var(--primary);">Test Marks for <span class="teacher-subject-display"></span></h3>
+            <div class="control-panel">
+                <div>
+                    <label><strong>Select Test:</strong></label>
+                    <select id="roster-test" onchange="renderMarksRoster()" style="max-width: 150px; display: inline-block;"></select>
+                </div>
+                <div style="border-left: 2px solid #ddd; padding-left: 15px; margin-left: 10px;">
+                    <label><strong>Create New Test:</strong></label>
+                    <input type="text" id="new-test-name" placeholder="e.g. Quiz 1" style="max-width: 150px; display: inline-block;">
+                    <button class="btn-small" onclick="addNewTest()">+ Add Test</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Roll Number</th>
+                        <th>Student Name</th>
+                        <th>Marks (Gained / Total)</th>
+                        <th style="color: var(--teacher-color);">Overall Marks %</th>
+                    </tr>
+                </thead>
+                <tbody id="teacher-marks-body"></tbody>
+            </table>
+            <button class="btn-save" style="background-color: var(--teacher-color);" onclick="saveMarksData()">Save Marks</button>
+        </div>
+    </div>
+
+    <div id="student-history-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeHistoryModal()">&times;</span>
+            <h2 id="modal-history-title" style="color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px;">Attendance History</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-history-body"></tbody>
             </table>
         </div>
     </div>
 
-    <div id="admin-add-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeAddStudentModal()">&times;</span>
-            <h3 style="color:#a31d33;">Enroll New Student</h3>
-            <div class="input-group"><label>Roll Number</label><input type="text" id="add-id-input"></div>
-            <div class="input-group"><label>Full Name</label><input type="text" id="add-name-input"></div>
-            <div class="input-group"><label>Course</label><select id="add-course-input"><option value="CSE">CSE</option><option value="AI">AI</option><option value="EEE">EEE</option><option value="MBA">MBA</option></select></div>
-            <button class="btn" style="width:100%; background:#28a745;" onclick="saveNewStudent()">Enroll Student</button>
-        </div>
-    </div>
-
     <script>
-        let db = []; let waitlistQueue = {};
-        const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
-        let currentUser = null, editingStudentId = null;
+        let chartInstance = null;
+        let currentActiveSubject = ""; 
+        const subjectList = ["JAVA", "EOC", "EEE", "MATHS", "DSA"];
+        let universityTests = ["Test 1", "Test 2"];
+        
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('roster-date').value = today;
+        
+        const teacherDatabase = [
+            { id: "loknath", password: "loknathjava", subject: "JAVA", name: "Prof. Loknath" },
+            { id: "dhemanth", password: "dhemantheoc", subject: "EOC", name: "Prof. Dhemanth" },
+            { id: "vasanth", password: "vasantheee", subject: "EEE", name: "Prof. Vasanth" },
+            { id: "manoj", password: "manojmaths", subject: "MATHS", name: "Prof. Manoj" },
+            { id: "ramesh", password: "rameshdsa", subject: "DSA", name: "Prof. Ramesh" }
+        ];
 
-        async function pullData() {
-            try {
-                let res = await fetch('/api/sync');
-                let data = await res.json();
-                db = data.db || []; waitlistQueue = data.queue || {};
-            } catch(e) { console.error(e); }
-        }
+        let studentDatabase = [
+            { id: "AMRITA25001", name: "B. Dhemanth" },
+            { id: "AMRITA25002", name: "K. Vasanth" },
+            { id: "AMRITA25003", name: "M. Manoj" },
+            { id: "AMRITA25004", name: "T. Loknath" },
+            { id: "AMRITA25005", name: "Aarav Sharma" },
+            { id: "AMRITA25006", name: "Aditi Verma" },
+            { id: "AMRITA25007", name: "Aditya Patel" },
+            { id: "AMRITA25008", name: "Ananya Singh" },
+            { id: "AMRITA25009", name: "Arjun Kumar" },
+            { id: "AMRITA25010", name: "Avinash Reddy" },
+            { id: "AMRITA25011", name: "Bhavya Gupta" },
+            { id: "AMRITA25012", name: "Chaitanya Rao" },
+            { id: "AMRITA25013", name: "Deepa Krishnan" },
+            { id: "AMRITA25014", name: "Dev Joshi" },
+            { id: "AMRITA25015", name: "Diya Menon" },
+            { id: "AMRITA25016", name: "Esha Desai" },
+            { id: "AMRITA25017", name: "Gaurav Nair" },
+            { id: "AMRITA25018", name: "Hari Om" },
+            { id: "AMRITA25019", name: "Ishaan Mehta" },
+            { id: "AMRITA25020", name: "Kavya Iyer" },
+            { id: "AMRITA25021", name: "Kiran Das" },
+            { id: "AMRITA25022", name: "Lakshmi Narayan" },
+            { id: "AMRITA25023", name: "Manish Tiwari" },
+            { id: "AMRITA25024", name: "Neha Kapoor" },
+            { id: "AMRITA25025", name: "Nithin Raj" },
+            { id: "AMRITA25026", name: "Pooja Bhat" },
+            { id: "AMRITA25027", name: "Pranav Varma" },
+            { id: "AMRITA25028", name: "Priya Rathi" },
+            { id: "AMRITA25029", name: "Rahul Chatterjee" },
+            { id: "AMRITA25030", name: "Riya Sen" }
+        ];
 
-        async function pushData() {
-            await fetch('/api/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({db: db, queue: waitlistQueue}) });
-        }
-
-        function goToView(id) {
-            document.querySelectorAll('.page-container').forEach(p => p.classList.remove('active-page'));
-            document.getElementById(id).classList.add('active-page');
-        }
-
-        async function attemptAdminLogin() {
-            if(document.getElementById('admin-id').value === "ADMINAMRITA2000") {
-                await pullData();
-                updateAdminFloors();
-                renderAdminTable();
-                goToView('view-admin');
+        function initializeStudentRecords(student) {
+            if (!student.records) {
+                student.records = {};
+                subjectList.forEach(sub => {
+                    student.records[sub] = { attendance: {}, marks: {} };
+                    universityTests.forEach(test => {
+                        student.records[sub].marks[test] = { gained: "", total: "" };
+                    });
+                });
             }
         }
 
-        function renderAdminTable() {
-            const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
-            db.forEach(s => {
-                const status = s.adminLocked ? 'Locked' : (s.isWaitlisted ? 'Waitlist' : (s.booked ? 'Paid' : 'Pending'));
-                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${status}</td><td>${s.room}</td><td>${s.bed}</td><td><button class="btn" onclick="alert('Editing ${s.id}')">Edit</button></td></tr>`;
+        // ==========================================
+        // THE PYTHON FETCH ENGINE (Data Saving)
+        // ==========================================
+
+        window.onload = function() {
+            fetch('/cgi-bin/backend.py')
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    studentDatabase = data; 
+                    console.log("Data successfully loaded from Python database!");
+                } else {
+                    studentDatabase.forEach(initializeStudentRecords);
+                }
+            })
+            .catch(error => {
+                console.log("No existing database found, starting fresh.");
+                studentDatabase.forEach(initializeStudentRecords);
+            });
+        };
+
+        function saveToPythonDatabase(successMessage) {
+            fetch('/cgi-bin/backend.py', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentDatabase)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert("✅ Success: " + successMessage);
+                } else {
+                    alert("❌ Error: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving data:', error);
+                alert("❌ Error: Could not reach the Python server. Is the black window running?");
             });
         }
 
-        function filterAdminTable() {
-            let q = document.getElementById('admin-search-input').value.toUpperCase();
-            document.querySelectorAll('#admin-table-body tr').forEach(r => r.style.display = r.innerText.toUpperCase().includes(q) ? "" : "none");
+        // ==========================================
+        // UI & LOGIC FUNCTIONS
+        // ==========================================
+
+        function updateTestDropdown() {
+            const select = document.getElementById('roster-test');
+            select.innerHTML = '';
+            universityTests.forEach(test => { select.innerHTML += `<option value="${test}">${test}</option>`; });
+        }
+        updateTestDropdown();
+
+        function addNewTest() {
+            const testName = document.getElementById('new-test-name').value.trim();
+            if(!testName) { alert("Please enter a test name."); return; }
+            if(universityTests.includes(testName)) { alert("This test already exists!"); return; }
+            
+            universityTests.push(testName);
+            studentDatabase.forEach(student => {
+                subjectList.forEach(sub => { student.records[sub].marks[testName] = { gained: "", total: "" }; });
+            });
+            
+            updateTestDropdown();
+            document.getElementById('roster-test').value = testName;
+            document.getElementById('new-test-name').value = "";
+            renderMarksRoster();
+            
+            saveToPythonDatabase(`"${testName}" has been successfully added to the system!`);
         }
 
-        function openAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'flex'; }
-        function closeAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'none'; }
+        function teacherLogin() {
+            const username = document.getElementById('teacher-username').value.trim().toLowerCase();
+            const password = document.getElementById('teacher-password').value.trim().toLowerCase();
 
-        async function saveNewStudent() {
-            const id = document.getElementById('add-id-input').value.toUpperCase();
-            const name = document.getElementById('add-name-input').value;
-            if(!id || !name) return alert("Fill all fields");
-            db.push({ id: id, name: name, course: document.getElementById('add-course-input').value, pass: "1234", booked: false, room: "-", bed: "-", bookingTime: 0, isWaitlisted: false, waitRoom: "-", waitBed: "-", adminLocked: false });
-            await pushData();
-            closeAddStudentModal();
-            renderAdminTable();
-        }
-
-        function updateAdminFloors() {
-            const c = document.getElementById('admin-course-filter').value;
-            const sel = document.getElementById('admin-floor-filter'); sel.innerHTML = '';
-            floorAllocation[c].forEach(f => sel.innerHTML += `<option value="${f}">Floor ${f}</option>`);
-            generateAdminRooms();
-        }
-
-        function generateAdminRooms() {
-            const f = document.getElementById('admin-floor-filter').value;
-            const div = document.getElementById('admin-room-tags'); div.innerHTML = '';
-            for(let i = (f*100)+1; i <= (f*100)+8; i++) div.innerHTML += `<div class="room-tag" onclick="inspectRoom(${i})">Room ${i}</div>`;
-        }
-
-        function inspectRoom(num) {
-            document.getElementById('inspect-container').style.display = 'block';
-            document.getElementById('inspect-room-title').innerText = "Room " + num;
-            for(let i=1; i<=4; i++) {
-                const el = document.getElementById('ins-bed-'+i);
-                const occ = db.find(s => s.room == num && s.bed == i && s.booked);
-                el.className = `bed pos-${i} ` + (occ ? "bed-booked" : "bed-available");
-                el.innerHTML = `<div class="pillow"></div>` + (occ ? occ.id : "EMPTY");
+            const foundTeacher = teacherDatabase.find(t => t.id === username && t.password === password);
+            if (foundTeacher) {
+                currentActiveSubject = foundTeacher.subject;
+                document.getElementById('logged-in-teacher').innerText = `${foundTeacher.name} (${foundTeacher.subject})`;
+                document.querySelectorAll('.teacher-subject-display').forEach(el => el.innerText = foundTeacher.subject);
+                
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('teacher-dashboard').style.display = 'block';
+                
+                renderAttendanceRoster(); renderMarksRoster();
+            } else {
+                alert("Wrong ID or Password entered. Please try again.");
             }
         }
 
-        window.onload = pullData;
+        function studentLogin() {
+            const username = document.getElementById('student-username').value.trim().toUpperCase();
+            const password = document.getElementById('student-password').value.trim();
+
+            const foundStudent = studentDatabase.find(s => s.id === username);
+            const match = username.match(/\d+$/);
+            
+            if (foundStudent && match && match[0] === password) {
+                document.getElementById('logged-in-id').innerText = `${foundStudent.name} (${foundStudent.id})`;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('student-dashboard').style.display = 'block';
+                updateStudentDashboard(foundStudent);
+            } else {
+                alert("Wrong ID or Password entered. Please try again.");
+            }
+        }
+
+        function saveAttendanceData() {
+            const selectedDate = document.getElementById('roster-date').value || today;
+            studentDatabase.forEach((student, index) => {
+                const selectElement = document.getElementById(`att-${index}`);
+                student.records[currentActiveSubject].attendance[selectedDate] = selectElement.value;
+            });
+            renderAttendanceRoster();
+            saveToPythonDatabase(`Attendance for ${selectedDate} saved permanently!`);
+        }
+
+        function saveMarksData() {
+            const selectedTest = document.getElementById('roster-test').value;
+            studentDatabase.forEach((student, index) => {
+                const gainedEl = document.getElementById(`gained-${index}`);
+                const totalEl = document.getElementById(`total-${index}`);
+                student.records[currentActiveSubject].marks[selectedTest].gained = gainedEl.value;
+                student.records[currentActiveSubject].marks[selectedTest].total = totalEl.value;
+            });
+            renderMarksRoster();
+            saveToPythonDatabase(`${selectedTest} Marks saved permanently!`);
+        }
+
+        function addStudent(event) {
+            event.preventDefault(); 
+            const id = document.getElementById('new-student-id').value.trim().toUpperCase();
+            const name = document.getElementById('new-student-name').value.trim();
+
+            if (studentDatabase.some(student => student.id === id)) { alert("Roll Number already exists!"); return; }
+
+            let newStudent = { id: id, name: name };
+            initializeStudentRecords(newStudent); 
+            studentDatabase.push(newStudent);
+            
+            document.getElementById('add-student-form').reset();
+            renderAttendanceRoster(); renderMarksRoster();
+            saveToPythonDatabase(`${name} has been enrolled permanently!`);
+        }
+
+        function renderAttendanceRoster() {
+            const tbody = document.getElementById('teacher-attendance-body');
+            tbody.innerHTML = '';
+            const selectedDate = document.getElementById('roster-date').value || today;
+
+            studentDatabase.forEach((student, index) => {
+                const record = student.records[currentActiveSubject];
+                const currentAtt = record.attendance[selectedDate] || "Present";
+
+                const recordedDates = Object.values(record.attendance);
+                const classCount = recordedDates.length;
+                let presentCount = 0;
+                recordedDates.forEach(status => { if (status === "Present" || status === "Late") presentCount++; });
+                const overallAttPercentage = classCount > 0 ? Math.round((presentCount / classCount) * 100) : 0;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${student.id}</strong></td>
+                        <td>${student.name}</td>
+                        <td>
+                            <select id="att-${index}" style="max-width: 150px;">
+                                <option value="Present" ${currentAtt === 'Present' ? 'selected' : ''}>Present</option>
+                                <option value="Absent" ${currentAtt === 'Absent' ? 'selected' : ''}>Absent</option>
+                                <option value="Late" ${currentAtt === 'Late' ? 'selected' : ''}>Late</option>
+                            </select>
+                        </td>
+                        <td style="color: var(--secondary);"><strong>${classCount > 0 ? overallAttPercentage + '%' : 'No Data'}</strong></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderMarksRoster() {
+            const tbody = document.getElementById('teacher-marks-body');
+            tbody.innerHTML = '';
+            const selectedTest = document.getElementById('roster-test').value;
+
+            studentDatabase.forEach((student, index) => {
+                const record = student.records[currentActiveSubject];
+                const currentMarks = record.marks[selectedTest];
+
+                let gained = 0; let max = 0;
+                universityTests.forEach(testName => {
+                    gained += parseInt(record.marks[testName].gained) || 0;
+                    max += parseInt(record.marks[testName].total) || 0;
+                });
+                const overallMarksPercentage = max > 0 ? Math.round((gained / max) * 100) : 0;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${student.id}</strong></td>
+                        <td>${student.name}</td>
+                        <td>
+                            <div class="input-group">
+                                <input type="number" id="gained-${index}" value="${currentMarks.gained}" placeholder="Gained"> /
+                                <input type="number" id="total-${index}" value="${currentMarks.total}" placeholder="Total">
+                            </div>
+                        </td>
+                        <td style="color: var(--teacher-color);"><strong>${max > 0 ? overallMarksPercentage + '%' : 'No Data'}</strong></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateStudentDashboard(student) {
+            const attBody = document.getElementById('student-attendance-body');
+            const marksHead = document.getElementById('student-marks-head');
+            const marksBody = document.getElementById('student-marks-body');
+            
+            attBody.innerHTML = ''; marksBody.innerHTML = '';
+            
+            let headHTML = '<tr><th>Subject</th>';
+            universityTests.forEach(test => { headHTML += `<th>${test}</th>`; });
+            headHTML += `<th style="color: var(--teacher-color);">Overall %</th></tr>`;
+            marksHead.innerHTML = headHTML;
+            
+            let totalGainedMarks = 0; let totalMaxMarks = 0;
+            let totalDaysPresent = 0; let totalDaysRecorded = 0;
+            const marksGraphData = []; const attGraphData = [];
+
+            subjectList.forEach(sub => {
+                const rec = student.records[sub];
+                const recordedDates = Object.values(rec.attendance);
+                const classCount = recordedDates.length;
+                let presentCount = 0;
+                recordedDates.forEach(status => { if (status === "Present" || status === "Late") presentCount++; });
+                
+                const attPercentage = classCount > 0 ? Math.round((presentCount / classCount) * 100) : 0;
+                totalDaysRecorded += classCount; totalDaysPresent += presentCount;
+
+                attBody.innerHTML += `
+                    <tr>
+                        <td><strong>${sub}</strong></td>
+                        <td>${presentCount} / ${classCount} days</td>
+                        <td style="color: var(--secondary);"><strong>${classCount > 0 ? attPercentage + '%' : 'No Data'}</strong></td>
+                        <td><button class="btn-view" onclick="viewHistory('${student.id}', '${sub}')">📅 View Dates</button></td>
+                    </tr>
+                `;
+
+                let marksRowHTML = `<td><strong>${sub}</strong></td>`;
+                let gained = 0; let max = 0;
+
+                universityTests.forEach(test => {
+                    const testMarks = rec.marks[test];
+                    const testStr = testMarks.gained !== "" ? `${testMarks.gained}/${testMarks.total}` : "-";
+                    marksRowHTML += `<td>${testStr}</td>`;
+                    gained += parseInt(testMarks.gained) || 0; max += parseInt(testMarks.total) || 0;
+                });
+
+                const marksPercentage = max > 0 ? Math.round((gained / max) * 100) : 0;
+                totalGainedMarks += gained; totalMaxMarks += max;
+
+                marksRowHTML += `<td style="color: var(--teacher-color);"><strong>${max > 0 ? marksPercentage + '%' : 'No Data'}</strong></td>`;
+                marksBody.innerHTML += `<tr>${marksRowHTML}</tr>`;
+
+                marksGraphData.push(marksPercentage);
+                attGraphData.push(attPercentage);
+            });
+
+            document.getElementById('overall-attendance').innerText = totalDaysRecorded > 0 ? Math.round((totalDaysPresent / totalDaysRecorded) * 100) + '%' : '0%';
+            document.getElementById('overall-marks').innerText = totalMaxMarks > 0 ? Math.round((totalGainedMarks / totalMaxMarks) * 100) + '%' : '0%';
+
+            renderStudentChart(marksGraphData, attGraphData);
+        }
+
+        function viewHistory(studentId, subject) {
+            const student = studentDatabase.find(s => s.id === studentId);
+            const attData = student.records[subject].attendance;
+            
+            document.getElementById('modal-history-title').innerText = `${subject} - Attendance History`;
+            const tbody = document.getElementById('modal-history-body');
+            tbody.innerHTML = '';
+            
+            const dates = Object.keys(attData).sort(); 
+            
+            if (dates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2">No attendance records found.</td></tr>`;
+            } else {
+                dates.forEach(date => {
+                    const status = attData[date];
+                    let statusColor = "green";
+                    if(status === "Absent") statusColor = "red";
+                    if(status === "Late") statusColor = "orange";
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${date}</strong></td>
+                            <td style="color: ${statusColor}; font-weight: bold;">${status}</td>
+                        </tr>
+                    `;
+                });
+            }
+            document.getElementById('student-history-modal').style.display = 'block';
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('student-history-modal').style.display = 'none';
+        }
+
+        function renderStudentChart(marksData, attData) {
+            const ctx = document.getElementById('studentChart').getContext('2d');
+            if(chartInstance != null) { chartInstance.destroy(); }
+            
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['JAVA', 'EOC', 'EEE', 'MATHS', 'DSA'],
+                    datasets: [
+                        { label: 'Attendance %', data: attData, backgroundColor: '#3498db', borderRadius: 4 },
+                        { label: 'Overall Marks %', data: marksData, backgroundColor: '#e67e22', borderRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+        }
+
+        function logout() {
+            document.getElementById('student-dashboard').style.display = 'none';
+            document.getElementById('teacher-dashboard').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+            currentActiveSubject = "";
+            document.querySelectorAll('input').forEach(input => input.value = '');
+            document.getElementById('roster-date').value = today;
+            updateTestDropdown(); 
+        }
     </script>
 </body>
 </html>
