@@ -320,12 +320,12 @@
                     el.className = `bed pos-${i} bed-booked`;
                     el.innerHTML = `<div class="pillow"></div><i class="fas fa-user"></i><br>OCCUPIED`;
                     // Click to Waitlist
-                    el.onclick = can ? () => chooseBed(el, i, true) : () => alert("You already have a booking or waitlist entry!");
+                    el.onclick = can ? () => chooseBed(el, i, true) : () => alert("Limited to one action!");
                 } else {
                     el.className = `bed pos-${i} bed-available`;
                     el.innerHTML = `<div class="pillow"></div><i class="fas fa-check" style="display:none;"></i>`;
                     // Click to Book
-                    el.onclick = can ? () => chooseBed(el, i, false) : () => alert("You already have a booking or waitlist entry!");
+                    el.onclick = can ? () => chooseBed(el, i, false) : () => alert("Limited to one action!");
                 }
             }
             document.getElementById('btn-confirm').disabled = true;
@@ -376,6 +376,28 @@
             logout();
         }
 
+        async function forceLock(id) {
+            let idx = db.findIndex(s => s.id === id);
+            if (idx === -1) return;
+
+            const lockedRoom = db[idx].room;
+            const lockedBed = db[idx].bed;
+
+            db[idx].adminLocked = true;
+
+            // CLEAR WAITLIST: Find any student waitlisted for this specific room/bed
+            db.forEach(student => {
+                if (student.isWaitlisted && student.waitRoom == lockedRoom && student.waitBed == lockedBed) {
+                    student.isWaitlisted = false;
+                    student.waitRoom = "-";
+                    student.waitBed = "-";
+                }
+            });
+
+            await pushData();
+            renderAdminTable();
+        }
+
         function logout() { currentUser = null; goToView('view-home'); }
         function goToView(id) { document.querySelectorAll('.page-container').forEach(p => p.classList.remove('active-page')); document.getElementById(id).classList.add('active-page'); }
         
@@ -391,7 +413,6 @@
 
         function openAdminModal(id) { editingStudentId = id; const s = db.find(st => st.id === id); document.getElementById('edit-student-name').innerText = s.name; document.getElementById('admin-edit-modal').style.display = 'flex'; }
         function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
-        async function forceLock(id) { let idx = db.findIndex(s => s.id === id); db[idx].adminLocked = true; await pushData(); renderAdminTable(); }
         async function saveAdminChanges() { 
             const idx = db.findIndex(s => s.id === editingStudentId); 
             db[idx].pass = document.getElementById('edit-pass-input').value || db[idx].pass;
