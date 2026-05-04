@@ -6,43 +6,269 @@
     <title>Smart Hostel Accommodation System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
-        .page-container { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 1000px; margin: auto; box-sizing: border-box; position: relative; }
-        .active-page { display: block; }
-        .title { color: #a31d33; font-size: 26px; font-weight: bold; margin-bottom: 20px; margin-top: 30px; text-align: center; }
-        .btn { padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: bold; transition: 0.2s; background-color: #a31d33; color: white; margin-top: 10px; }
-        .btn:hover { background-color: #8a182b; }
-        .btn-outline { background-color: white; color: #a31d33; border: 2px solid #a31d33; }
-        .btn-back { background: #6c757d; color: white; padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
-        .header-buttons { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; font-size: 14px; margin-bottom: 5px; font-weight: bold; color: #4a4a4a;}
-        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px;}
-        .error-box { color: #a31d33; background: #fcebeb; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; font-weight: bold; text-align: center;}
-        
-        .floor-plan-wrapper { width: 100%; overflow-x: auto; padding: 10px 0; text-align: center; }
-        .floor-plan { width: 600px; height: 400px; border: 6px solid #4a4a4a; margin: 10px auto; position: relative; background: #fafafa; display: inline-block; text-align: left; }
-        .bed { position: absolute; width: 80px; height: 130px; background: #e0e0e0; border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.2s; cursor: pointer; font-size: 10px; font-weight: bold; }
-        .pillow { position: absolute; top: 10px; width: 50px; height: 25px; background: white; border: 1px solid #ccc; border-radius: 4px; }
-        .bed-available { border-color: #28a745; }
-        .bed-selected { border-color: #28a745; background: #d4edda; border-width: 3px; }
-        .bed-selected i { color: #28a745; font-size: 24px; z-index: 2; margin-top: 20px; }
-        .bed-waiting { border-color: #fd7e14; background: #fff3cd; color: #856404; }
-        .bed-booked { border-color: #dc3545; background: #f8d7da; color: #721c24; }
-        .pos-1 { top: 20px; left: 20px; } .pos-2 { top: 20px; right: 20px; } .pos-3 { bottom: 20px; left: 20px; } .pos-4 { bottom: 20px; right: 20px; } 
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f5f7; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; color: #333; 
+        }
+        .page-container { 
+            display: none; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            width: 100%; max-width: 1000px; 
+            margin: auto; 
+            box-sizing: border-box; 
+            position: relative; 
+        }
+        .active-page { 
+            display: block; 
+        }
+        .title { 
+            color: #a31d33; 
+            font-size: 26px; 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+            margin-top: 30px; 
+            text-align: center; 
+        }
+        .btn { 
+            padding: 12px 24px; 
+            font-size: 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            border: none; 
+            font-weight: bold; 
+            transition: 0.2s; 
+            background-color: #a31d33; 
+            color: white; 
+            margin-top: 10px; 
+        }
+        .btn:hover { 
+            background-color: #8a182b; 
+        }
+        .btn-outline { 
+            background-color: white; 
+            color: #a31d33; 
+            border: 2px solid #a31d33; 
+        }
+        .btn-back { 
+            background: #6c757d; 
+            color: white; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+        .header-buttons { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            display: flex; 
+            gap: 10px; 
+            z-index: 10; 
+        }
+        .input-group { 
+            margin-bottom: 15px; 
+            text-align: left; 
+        }
+        .input-group label { 
+            display: block; 
+            font-size: 14px; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            color: #4a4a4a;
+        }
+        .input-group input, .input-group select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 15px;
+        }
+        .error-box { 
+            color: #a31d33; 
+            background: #fcebeb; 
+            padding: 12px; 
+            border-radius: 6px; 
+            margin-bottom: 15px; 
+            display: none; 
+            font-weight: bold; 
+            text-align: center;
+        }
+        .floor-plan-wrapper { 
+            width: 100%; 
+            overflow-x: auto; 
+            padding: 10px 0; 
+            text-align: center; 
+        }
+        .floor-plan { 
+            width: 600px; 
+            height: 400px; 
+            border: 6px solid #4a4a4a; 
+            margin: 10px auto; 
+            position: relative; 
+            background: #fafafa; 
+            display: inline-block; 
+            text-align: left; 
+        }
+        .bed { 
+            position: absolute; 
+            width: 80px; 
+            height: 130px; 
+            background: #e0e0e0; 
+            border: 2px solid #ccc; 
+            border-radius: 8px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            transition: 0.2s; 
+            cursor: pointer; 
+            font-size: 10px; 
+            font-weight: bold; 
+        }
+        .pillow { 
+            position: absolute; 
+            top: 10px; 
+            width: 50px; 
+            height: 25px; 
+            background: white; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+        }
+        .bed-available { 
+            border-color: #28a745; 
+        }
+        .bed-selected { 
+            border-color: #28a745; 
+            background: #d4edda; 
+            border-width: 3px; 
+        }
+        .bed-selected i { 
+            color: #28a745; 
+            font-size: 24px;
+            z-index: 2; 
+            margin-top: 20px; 
+        }
+        .bed-waiting { 
+            border-color: #fd7e14; 
+            background: #fff3cd; 
+            color: #856404; 
+        }
+        .bed-booked { 
+            border-color: #dc3545; 
+            background: #f8d7da; 
+            color: #721c24; 
+        }
+        .pos-1 { 
+            top: 20px; 
+            left: 20px; 
+        } 
+        .pos-2 { 
+            top: 20px; 
+            right: 20px; 
+        } 
+        .pos-3 { 
+            bottom: 20px; 
+            left: 20px; 
+        } 
+        .pos-4 { 
+            bottom: 20px; 
+            right: 20px; 
+        } 
 
-        .room-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
-        .room-tag { padding: 8px 12px; background: #eee; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; border: 1px solid #ddd; }
-        .room-tag:hover { background: #a31d33; color: white; }
-        .room-card { background: white; width: 100px; padding: 15px 0; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; border-bottom: 4px solid #28a745; }
+        .room-grid { 
+            display: flex; 
+            gap: 10px; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            margin-top: 15px; 
+        }
+        .room-tag { 
+            padding: 8px 12px; 
+            background: #eee; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 13px; 
+            border: 1px solid #ddd; 
+        }
+        .room-tag:hover { 
+            background: #a31d33; 
+            color: white; 
+        }
+        .room-card { 
+            background: white; 
+            width: 100px; 
+            padding: 15px 0; 
+            border-radius: 10px; 
+            text-align: center; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            cursor: pointer; 
+            border-bottom: 4px solid #28a745; 
+        }
 
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left; min-width: 800px; }
-        th, td { border: 1px solid #ddd; padding: 10px; } th { background-color: #a31d33; color: white; }
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 10px; box-sizing: border-box;}
-        .modal-content { background-color: white; padding: 30px; border-radius: 10px; width: 400px; position: relative; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #777; transition: 0.2s; }
-        .close-btn:hover { color: #a31d33; }
+        .table-responsive { 
+            width: 100%; 
+            overflow-x: auto; 
+        }
+        table { width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            font-size: 14px; 
+            text-align: left; 
+            min-width: 800px; 
+        }
+        th, td { 
+            border: 1px solid #ddd;
+             padding: 10px; 
+            } 
+            th { 
+                background-color: #a31d33; 
+                color: white; 
+            }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.6); 
+            align-items: center; 
+            justify-content: center; 
+            padding: 10px; 
+            box-sizing: border-box;
+        }
+        .modal-content { 
+            background-color: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            width: 400px; 
+            position: relative; 
+        }
+        .close-btn { 
+            position: absolute; 
+            top: 15px; 
+            right: 20px; 
+            font-size: 24px; 
+            cursor: pointer; 
+            color: #777; 
+            transition: 0.2s; 
+        }
+        .close-btn:hover { 
+            color: #a31d33; 
+        }
     </style>
 </head>
 <body>
