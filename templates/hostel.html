@@ -310,7 +310,7 @@
 
         async function openGraphicalRoom(n) {
             await pullData(); currentRoom = n; document.getElementById('room-title').innerText = "Room " + n;
-            const can = !(currentUser.booked || currentUser.isWaitlisted);
+            const can = true;
             document.getElementById('waitlist-hint').style.display = can ? 'block' : 'none';
 
             for(let i=1; i<=4; i++) {
@@ -362,15 +362,40 @@
         async function processPayment() {
             const idx = db.findIndex(s => s.id === currentUser.id);
             if (isJoiningWaitlist) {
-                currentUser.isWaitlisted = true;
-                currentUser.waitRoom = currentRoom;
-                currentUser.waitBed = selectedBed;
-            } else {
-                currentUser.booked = true;
-                currentUser.room = currentRoom;
-                currentUser.bed = selectedBed;
-                currentUser.bookingTime = Date.now();
-            }
+    let key = currentRoom + "-" + selectedBed;
+
+    if (!waitlistQueue[key]) {
+        waitlistQueue[key] = [];
+    }
+
+    // FIFO enqueue
+    waitlistQueue[key].push(currentUser.id);
+
+    currentUser.isWaitlisted = true;
+    currentUser.waitRoom = currentRoom;
+    currentUser.waitBed = selectedBed;
+
+    alert("Added to Waiting List!");
+}
+            else {
+    currentUser.booked = true;
+    currentUser.room = currentRoom;
+    currentUser.bed = selectedBed;
+    currentUser.bookingTime = Date.now();
+
+    //  REMOVE FROM QUEUE
+    let key = currentUser.waitRoom + "-" + currentUser.waitBed;
+
+    if (waitlistQueue[key]) {
+        waitlistQueue[key] = waitlistQueue[key].filter(
+            id => id !== currentUser.id
+        );
+    }
+
+    currentUser.isWaitlisted = false;
+    currentUser.waitRoom = "-";
+    currentUser.waitBed = "-";
+}
             db[idx] = currentUser; 
             await pushData(); 
             alert(isJoiningWaitlist ? "Added to Waiting List!" : "Booking Successful!");
@@ -382,25 +407,30 @@
     const idx = db.findIndex(s => s.id === editingStudentId);
     if (idx === -1) return;
 
-    // Clear booking details
+    // ✅ STEP 1: STORE BEFORE CLEARING
+    let freedRoom = db[idx].room;
+    let freedBed = db[idx].bed;
+
+    // ✅ STEP 2: CLEAR BOOKING
     db[idx].booked = false;
     db[idx].room = "-";
     db[idx].bed = "-";
     db[idx].bookingTime = 0;
 
-    // Also clear waitlist if any
-    db[idx].isWaitlisted = false;
-    db[idx].waitRoom = "-";
-    db[idx].waitBed = "-";
+    // ✅ STEP 3: FIFO QUEUE
+    let key = freedRoom + "-" + freedBed;
 
-    try {
-        await pushData();   // update backend
-        alert("Booking Cancelled Successfully");
-        closeAdminModal();
-        renderAdminTable();
-    } catch (error) {
-        alert("Error cancelling booking");
+    if (waitlistQueue[key] && waitlistQueue[key].length > 0) {
+        let nextStudentId = waitlistQueue[key].shift();
+
+        alert("Notification: " + nextStudentId +
+              " can now book Room " + freedRoom + " Bed " + freedBed);
     }
+
+    await pushData();
+    alert("Booking Cancelled Successfully");
+    closeAdminModal();
+    renderAdminTable();
 }
 
         async function forceLock(id) {
