@@ -250,28 +250,16 @@
         }
 
             async function attemptAdminLogin() {
-    const id = document.getElementById('admin-id').value;
-    const pass = document.getElementById('admin-pass').value;
-
-    let res = await fetch('/api/admin');
-    let admin = await res.json();
-
-    if (id === admin.id && pass === admin.password) {
-        await pullData();
-        updateAdminFloors();
-        updateOccupancySummary();
-        renderAdminTable();
-        goToView('view-admin');
-    } else {
-        document.getElementById('admin-login-error').style.display = 'block';
-    }
-} {
+            const id = document.getElementById('admin-id').value;
+            const pass = document.getElementById('admin-pass').value;
+            if(id === "ADMINAMRITA2000" && pass === "0987654321") {
                 await pullData();
                 updateAdminFloors();
                 updateOccupancySummary();
                 renderAdminTable();
                 goToView('view-admin');
             } else { document.getElementById('admin-login-error').style.display = 'block'; }
+              
         }
 
         function renderAdminTable() {
