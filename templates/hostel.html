@@ -195,272 +195,160 @@
 
     <div id="otp-modal" class="modal"><div class="modal-content" style="text-align: center;"><h3>Verify OTP</h3><input type="text" id="otp-input" maxlength="4"><button class="btn" onclick="verifyOTP()">Confirm</button></div></div>
 
-    <script>
-        let queue = db.filter(s =>
-    s.isWaitlisted &&
-    s.waitRoom == freedRoom &&
-    s.waitBed == freedBed
-);
+  <script>
+let db = [];
+let waitlistQueue = {};   // FIFO Queue
 
-// FIFO → earliest bookingTime first
-queue.sort((a, b) => a.bookingTime - b.bookingTime);
+let currentUser = null, currentRoom = null, selectedBed = null, isJoiningWaitlist = false, editingStudentId = null;
 
-let next = queue[0];
+async function pullData() {
+    let res = await fetch('/api/sync');
+    let data = await res.json();
+    db = data.db || [];
+    waitlistQueue = data.queue || {};
+}
 
-        async function pushData() {
-            await fetch('/api/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({db: db, queue: waitlistQueue}) });
+async function pushData() {
+    await fetch('/api/sync', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ db: db, queue: waitlistQueue })
+    });
+}
+
+// ================= LOGIN =================
+async function attemptLogin() {
+    await pullData();
+    const id = document.getElementById('login-id').value.toUpperCase();
+    const pass = document.getElementById('login-pass').value;
+
+    const u = db.find(s => s.id === id && s.pass === pass);
+
+    if (u) {
+        currentUser = u;
+        goToView('view-floor');
+    } else {
+        alert("Invalid Login");
+    }
+}
+
+// ================= ROOM =================
+async function openGraphicalRoom(n) {
+    await pullData();
+    currentRoom = n;
+
+    for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById('bed-' + i);
+
+        const occ = db.find(s => s.room == n && s.bed == i && s.booked);
+
+        if (occ) {
+            el.className = `bed pos-${i} bed-booked`;
+            el.innerHTML = "OCCUPIED";
+
+            el.onclick = () => chooseBed(el, i, true); // waitlist
+        } else {
+            el.className = `bed pos-${i} bed-available`;
+            el.innerHTML = "AVAILABLE";
+
+            el.onclick = () => chooseBed(el, i, false); // booking
+        }
+    }
+
+    goToView('view-room');
+}
+
+// ================= SELECT BED =================
+function chooseBed(el, n, isW) {
+    document.querySelectorAll('.bed').forEach(b => b.classList.remove('bed-selected'));
+
+    el.classList.add('bed-selected');
+
+    selectedBed = n;
+    isJoiningWaitlist = isW;
+
+    document.getElementById('btn-confirm').disabled = false;
+}
+
+// ================= PAYMENT =================
+async function processPayment() {
+    const idx = db.findIndex(s => s.id === currentUser.id);
+
+    // ================= WAITLIST =================
+    if (isJoiningWaitlist) {
+        let key = currentRoom + "-" + selectedBed;
+
+        if (!waitlistQueue[key]) {
+            waitlistQueue[key] = [];
         }
 
-        function filterAdminTable() {
-            const query = document.getElementById('admin-search-input').value.toUpperCase();
-            document.querySelectorAll('#admin-table-body tr').forEach(row => {
-                row.style.display = row.innerText.toUpperCase().includes(query) ? "" : "none";
-            });
+        waitlistQueue[key].push(currentUser.id); // FIFO enqueue
+
+        currentUser.isWaitlisted = true;
+        currentUser.waitRoom = currentRoom;
+        currentUser.waitBed = selectedBed;
+
+        alert("Added to Waiting List!");
+    }
+
+    // ================= BOOKING =================
+    else {
+        currentUser.booked = true;
+        currentUser.room = currentRoom;
+        currentUser.bed = selectedBed;
+
+        // REMOVE FROM WAITLIST
+        let key = currentUser.waitRoom + "-" + currentUser.waitBed;
+
+        if (waitlistQueue[key]) {
+            waitlistQueue[key] = waitlistQueue[key].filter(id => id !== currentUser.id);
         }
 
-        function updateAdminFloors() {
-            const c = document.getElementById('admin-course-filter').value;
-            const fSel = document.getElementById('admin-floor-filter');
-            fSel.innerHTML = '';
-            floorAllocation[c].forEach(f => fSel.innerHTML += `<option value="${f}">Floor ${f}</option>`);
-            generateAdminRooms();
-        }
+        currentUser.isWaitlisted = false;
+        currentUser.waitRoom = "-";
+        currentUser.waitBed = "-";
 
-        function generateAdminRooms() {
-            const f = document.getElementById('admin-floor-filter').value;
-            const div = document.getElementById('admin-room-tags'); div.innerHTML = '';
-            let start = (parseInt(f) * 100) + 1;
-            for(let i = start; i <= start + 7; i++) {
-                div.innerHTML += `<div class="room-tag" onclick="inspectRoom(${i})">Room ${i}</div>`;
-            }
-        }
+        alert("Booking Successful!");
+    }
 
-        function inspectRoom(num) {
-            document.getElementById('inspect-container').style.display = 'block';
-            document.getElementById('inspect-room-title').innerText = "Status: Room " + num;
-            for(let i=1; i<=4; i++) {
-                const el = document.getElementById('ins-bed-'+i);
-                const occ = db.find(s => s.room == num && s.bed == i && s.booked);
-                const wait = db.find(s => s.waitRoom == num && s.waitBed == i && s.isWaitlisted);
-                if(occ) { el.className="bed pos-"+i+" bed-booked"; el.innerHTML=`<div class="pillow"></div>${occ.id}<br>PAID`; }
-                else if(wait) { el.className="bed pos-"+i+" bed-waiting"; el.innerHTML=`<div class="pillow"></div>${wait.id}<br>WAIT`; }
-                else { el.className="bed pos-"+i+" bed-available"; el.innerHTML=`<div class="pillow"></div>EMPTY`; }
-            }
-        }
+    db[idx] = currentUser;
+    await pushData();
+    goToView('view-home');
+}
 
-            async function attemptAdminLogin() {
-            const id = document.getElementById('admin-id').value;
-            const pass = document.getElementById('admin-pass').value;
-            if(id === "ADMINAMRITA2000" && pass === "0987654321") {
-                await pullData();
-                updateAdminFloors();
-                updateOccupancySummary();
-                renderAdminTable();
-                goToView('view-admin');
-            } else { document.getElementById('admin-login-error').style.display = 'block'; }
-              
-        }
-
-        function renderAdminTable() {
-            const tbody = document.getElementById('admin-table-body'); tbody.innerHTML = '';
-            db.forEach(s => {
-                const statusHtml = s.adminLocked ? '<span style="color:red; font-weight:bold;">Locked</span>' : (s.isWaitlisted ? '<span style="color:orange; font-weight:bold;">Waitlist</span>' : (s.booked ? '<span style="color:green; font-weight:bold;">Paid</span>' : 'Pending'));
-                const lockBtn = s.booked ? `<button class="btn" style="background:#dc3545; padding:5px 8px; margin-left:5px;" onclick="forceLock('${s.id}')"><i class="fas fa-lock"></i></button>` : '';
-                tbody.innerHTML += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.course}</td><td>${s.pass}</td><td>${statusHtml}</td><td>${s.booked?s.room:s.waitRoom}</td><td>${s.booked?s.bed:s.waitBed}</td><td><div style="display:flex;"><button class="btn btn-outline" style="padding:5px 10px; font-size:12px;" onclick="openAdminModal('${s.id}')">Edit</button>${lockBtn}</div></td></tr>`;
-            });
-        }
-
-        function updateOccupancySummary() {
-            const tbody = document.getElementById('occupancy-body'); tbody.innerHTML = '';
-            Object.keys(floorAllocation).forEach(c => {
-                const total = floorAllocation[c].length * 32;
-                const filled = db.filter(s => s.course === c && s.booked).length;
-                tbody.innerHTML += `<tr><td>${c}</td><td>${total}</td><td>${filled}</td><td>${total-filled}</td></tr>`;
-            });
-        }
-
-        async function attemptLogin() {
-            await pullData();
-            const id = document.getElementById('login-id').value.toUpperCase();
-            const pass = document.getElementById('login-pass').value;
-            const u = db.find(s => s.id === id && s.pass === pass);
-            if(u) {
-                currentUser = u;
-                document.getElementById('display-dept').innerText = u.course;
-                setupFloorDropdown(u.course);
-                document.getElementById('already-booked-alert').style.display = u.booked ? 'block' : 'none';
-                if(u.booked) document.getElementById('alert-room').innerText = u.room;
-                document.getElementById('waitlist-alert').style.display = u.isWaitlisted ? 'block' : 'none';
-                if(u.isWaitlisted) document.getElementById('wait-room').innerText = u.waitRoom;
-                goToView('view-floor');
-            } else { document.getElementById('login-error').style.display = 'block'; }
-        }
-
-        function setupFloorDropdown(c) {
-            const s = document.getElementById('floor-select'); s.innerHTML = '';
-            floorAllocation[c].forEach(f => s.innerHTML += `<option value="${f}">Floor ${f}</option>`);
-            generateRoomGrid(floorAllocation[c][0]);
-        }
-
-        function generateRoomGrid(f) {
-            const g = document.getElementById('room-grid-container'); g.innerHTML = '';
-            for(let i = (f*100)+1; i <= (f*100)+8; i++) g.innerHTML += `<div class="room-card" onclick="openGraphicalRoom(${i})"><i class="fas fa-bed"></i><h4>${i}</h4></div>`;
-        }
-
-        async function openGraphicalRoom(n) {
-            await pullData(); currentRoom = n; document.getElementById('room-title').innerText = "Room " + n;
-            const can = !(currentUser.booked || currentUser.isWaitlisted);
-            document.getElementById('waitlist-hint').style.display = can ? 'block' : 'none';
-
-            for(let i=1; i<=4; i++) {
-                const el = document.getElementById('bed-'+i); 
-                const occ = db.find(s => s.room == n && s.bed == i && s.booked);
-                
-                if(occ) {
-                    el.className = `bed pos-${i} bed-booked`;
-                    el.innerHTML = `<div class="pillow"></div><i class="fas fa-user"></i><br>OCCUPIED`;
-                    // Click to Waitlist
-                    el.onclick = can ? () => chooseBed(el, i, true) : () => alert("Limited to one action!");
-                } else {
-                    el.className = `bed pos-${i} bed-available`;
-                    el.innerHTML = `<div class="pillow"></div><i class="fas fa-check" style="display:none;"></i>`;
-                    // Click to Book
-                    el.onclick = can ? () => chooseBed(el, i, false) : () => alert("Limited to one action!");
-                }
-            }
-            document.getElementById('btn-confirm').disabled = true;
-            goToView('view-room');
-        }
-
-        function chooseBed(el, n, isW) {
-            document.querySelectorAll('.bed').forEach(b => { 
-                b.classList.remove('bed-selected'); 
-                if(b.querySelector('.fa-check')) b.querySelector('.fa-check').style.display = 'none'; 
-            });
-            el.classList.add('bed-selected'); 
-            if(el.querySelector('.fa-check')) el.querySelector('.fa-check').style.display = 'block';
-            
-            selectedBed = n; 
-            isJoiningWaitlist = isW;
-            document.getElementById('btn-confirm').disabled = false; 
-            document.getElementById('btn-confirm').style.opacity = '1';
-            document.getElementById('btn-confirm').innerText = isW ? "Join Waiting List" : "Proceed to Payment";
-        }
-
-        function goToPayment() { 
-            const amt = isJoiningWaitlist ? "₹500" : "₹60,000";
-            const type = isJoiningWaitlist ? "Waitlist Fee" : "Room Booking Fee";
-            document.getElementById('pay-amount').innerText = amt; 
-            document.getElementById('pay-summary').innerText = `${type} for Room ${currentRoom}, Bed ${selectedBed}`;
-            goToView('view-payment'); 
-        }
-
-        function validatePayment() { document.getElementById('otp-modal').style.display = 'flex'; }
-        function verifyOTP() { document.getElementById('otp-modal').style.display = 'none'; processPayment(); }
-        
-        async function processPayment() {
-            const idx = db.findIndex(s => s.id === currentUser.id);
-            if (isJoiningWaitlist) {
-                currentUser.isWaitlisted = true;
-                currentUser.waitRoom = currentRoom;
-                currentUser.waitBed = selectedBed;
-            } else {
-                currentUser.booked = true;
-                currentUser.room = currentRoom;
-                currentUser.bed = selectedBed;
-                currentUser.bookingTime = Date.now();
-            }
-            db[idx] = currentUser; 
-            await pushData(); 
-            alert(isJoiningWaitlist ? "Added to Waiting List!" : "Booking Successful!");
-            logout();
-        }
-        async function cancelBooking() {
+// ================= CANCEL BOOKING =================
+async function cancelBooking() {
     if (!editingStudentId) return;
 
     const idx = db.findIndex(s => s.id === editingStudentId);
     if (idx === -1) return;
 
-    // Clear booking details
+    let freedRoom = db[idx].room;
+    let freedBed = db[idx].bed;
+
     db[idx].booked = false;
     db[idx].room = "-";
     db[idx].bed = "-";
-    db[idx].bookingTime = 0;
 
-    // Also clear waitlist if any
-    db[idx].isWaitlisted = false;
-    db[idx].waitRoom = "-";
-    db[idx].waitBed = "-";
+    let key = freedRoom + "-" + freedBed;
 
-    try {
-        await pushData();   // update backend
-        alert("Booking Cancelled Successfully");
-        closeAdminModal();
-        renderAdminTable();
-    } catch (error) {
-        alert("Error cancelling booking");
+    // FIFO dequeue
+    if (waitlistQueue[key] && waitlistQueue[key].length > 0) {
+        let nextStudentId = waitlistQueue[key].shift();
+
+        alert("Notification: " + nextStudentId + 
+              " can now book Room " + freedRoom + " Bed " + freedBed);
     }
+
+    await pushData();
+    alert("Booking Cancelled");
 }
 
-        async function forceLock(id) {
-            let idx = db.findIndex(s => s.id === id);
-            if (idx === -1) return;
+// ================= VIEW =================
+function goToView(id) {
+    document.querySelectorAll('.page-container').forEach(p => p.style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+}
 
-            const lockedRoom = db[idx].room;
-            const lockedBed = db[idx].bed;
-
-            db[idx].adminLocked = true;
-
-            // CLEAR WAITLIST: Find any student waitlisted for this specific room/bed
-            db.forEach(student => {
-                if (student.isWaitlisted && student.waitRoom == lockedRoom && student.waitBed == lockedBed) {
-                    student.isWaitlisted = false;
-                    student.waitRoom = "-";
-                    student.waitBed = "-";
-                }
-            });
-
-            await pushData();
-            renderAdminTable();
-        }
-
-        function logout() { currentUser = null; goToView('view-home'); }
-        function goToView(id) { document.querySelectorAll('.page-container').forEach(p => p.classList.remove('active-page')); document.getElementById(id).classList.add('active-page'); }
-        
-        function openAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'flex'; }
-        function closeAddStudentModal() { document.getElementById('admin-add-modal').style.display = 'none'; }
-        async function saveNewStudent() {
-            const id = document.getElementById('add-id-input').value.toUpperCase();
-            const name = document.getElementById('add-name-input').value;
-            if(!id || !name) return;
-            db.push({ id: id, name: name, course: document.getElementById('add-course-input').value, pass: "1234", booked: false, room: "-", bed: "-", bookingTime: 0, isWaitlisted: false, waitRoom: "-", waitBed: "-", adminLocked: false });
-            await pushData(); closeAddStudentModal(); renderAdminTable();
-        }
-
-        function openAdminModal(id) { editingStudentId = id; const s = db.find(st => st.id === id); document.getElementById('edit-student-name').innerText = s.name; document.getElementById('admin-edit-modal').style.display = 'flex'; }
-        function closeAdminModal() { document.getElementById('admin-edit-modal').style.display = 'none'; }
-        async function saveAdminChanges() { 
-            const idx = db.findIndex(s => s.id === editingStudentId); 
-            db[idx].pass = document.getElementById('edit-pass-input').value || db[idx].pass;
-            await pushData(); closeAdminModal(); renderAdminTable();
-        }
-
-        function openPassModal() { document.getElementById('student-pass-modal').style.display = 'flex'; }
-        function closePassModal() { document.getElementById('student-pass-modal').style.display = 'none'; document.getElementById('new-student-pass').value = ''; }
-
-        async function saveStudentPassword() {
-            const newPass = document.getElementById('new-student-pass').value;
-            if (!newPass || newPass.trim() === "") { alert("Please enter a valid password."); return; }
-            const userIndex = db.findIndex(s => s.id === currentUser.id);
-            if (userIndex !== -1) {
-                db[userIndex].pass = newPass;
-                currentUser.pass = newPass;
-                try { await pushData(); alert("Password updated!"); closePassModal(); } 
-                catch (error) { alert("Update failed."); }
-            }
-        }
-
-        window.onload = pullData;
-    </script>
-</body>
-</html>
+window.onload = pullData;
+</script>
