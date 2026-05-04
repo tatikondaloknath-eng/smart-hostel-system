@@ -375,6 +375,32 @@
             alert(isJoiningWaitlist ? "Added to Waiting List!" : "Booking Successful!");
             logout();
         }
+        async function cancelBooking() {
+    if (!editingStudentId) return;
+
+    const idx = db.findIndex(s => s.id === editingStudentId);
+    if (idx === -1) return;
+
+    // Clear booking details
+    db[idx].booked = false;
+    db[idx].room = "-";
+    db[idx].bed = "-";
+    db[idx].bookingTime = 0;
+
+    // Also clear waitlist if any
+    db[idx].isWaitlisted = false;
+    db[idx].waitRoom = "-";
+    db[idx].waitBed = "-";
+
+    try {
+        await pushData();   // update backend
+        alert("Booking Cancelled Successfully");
+        closeAdminModal();
+        renderAdminTable();
+    } catch (error) {
+        alert("Error cancelling booking");
+    }
+}
 
         async function forceLock(id) {
             let idx = db.findIndex(s => s.id === id);
