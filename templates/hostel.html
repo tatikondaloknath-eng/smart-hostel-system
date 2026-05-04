@@ -27,7 +27,7 @@
         .bed-available { border-color: #28a745; }
         .bed-selected { border-color: #28a745; background: #d4edda; border-width: 3px; }
         .bed-selected i { color: #28a745; font-size: 24px; z-index: 2; margin-top: 20px; }
-        .bed-waiting { border-color: #fd7e14; background: #fff3cd; color: #856404; }
+        .bed-waiting { border-color: #fd7e14; background: #fff3cd; color: #856404; }    
         .bed-booked { border-color: #dc3545; background: #f8d7da; color: #721c24; }
         .pos-1 { top: 20px; left: 20px; } .pos-2 { top: 20px; right: 20px; } .pos-3 { bottom: 20px; left: 20px; } .pos-4 { bottom: 20px; right: 20px; } 
 
@@ -196,17 +196,16 @@
     <div id="otp-modal" class="modal"><div class="modal-content" style="text-align: center;"><h3>Verify OTP</h3><input type="text" id="otp-input" maxlength="4"><button class="btn" onclick="verifyOTP()">Confirm</button></div></div>
 
     <script>
-        let db = []; let waitlistQueue = {};
-        const floorAllocation = { "CSE": [1, 2], "AI": [3, 4], "EEE": [5, 6], "MBA": [7] };
-        let currentUser = null, currentRoom = null, selectedBed = null, isJoiningWaitlist = false, editingStudentId = null;
+        let queue = db.filter(s =>
+    s.isWaitlisted &&
+    s.waitRoom == freedRoom &&
+    s.waitBed == freedBed
+);
 
-        async function pullData() {
-            try {
-                let res = await fetch('/api/sync', { cache: 'no-store' });
-                let data = await res.json();
-                db = data.db || []; waitlistQueue = data.queue || {};
-            } catch(e) { console.error("Sync Error", e); }
-        }
+// FIFO → earliest bookingTime first
+queue.sort((a, b) => a.bookingTime - b.bookingTime);
+
+let next = queue[0];
 
         async function pushData() {
             await fetch('/api/sync', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({db: db, queue: waitlistQueue}) });
